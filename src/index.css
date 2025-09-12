@@ -9,32 +9,53 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 120 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 120 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 120 15% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 120 40% 25%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 120 20% 95%;
+    --secondary-foreground: 120 30% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 120 15% 96%;
+    --muted-foreground: 120 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 120 25% 88%;
+    --accent-foreground: 120 40% 20%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 120 15% 90%;
+    --input: 120 15% 90%;
+    --ring: 120 40% 25%;
+
+    /* KaAni Web Design System */
+    --kaani-green-primary: 120 40% 25%;
+    --kaani-green-light: 120 25% 88%;
+    --kaani-green-muted: 120 15% 96%;
+    --kaani-green-dark: 120 50% 15%;
+    --kaani-sage: 120 20% 75%;
+    --kaani-forest: 125 45% 20%;
+    
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--kaani-green-primary)), hsl(var(--kaani-forest)));
+    --gradient-card: linear-gradient(180deg, hsl(var(--background)), hsl(var(--kaani-green-muted)));
+    --gradient-section: linear-gradient(to bottom, hsl(var(--kaani-green-muted)), hsl(var(--background)));
+    
+    /* Shadows */
+    --shadow-card: 0 4px 20px -4px hsl(var(--kaani-green-primary) / 0.1);
+    --shadow-elevated: 0 10px 40px -10px hsl(var(--kaani-green-primary) / 0.15);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
     --radius: 0.5rem;
 
