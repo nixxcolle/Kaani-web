@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title>KaAni Web</title>
+  <desc>Leaf-inspired monogram for KaAni Web</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#13a168" />
+      <stop offset="100%" stop-color="#0b6d48" />
+    </linearGradient>
+    <linearGradient id="leaf" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e5f7ec" />
+      <stop offset="100%" stop-color="#b8ebd0" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" />
+  <path
+    fill="url(#leaf)"
+    d="M18 38c0-12 13-22 26-22-1.8 12-10 22-26 22Z"
+    opacity=".95"
+  />
+  <path
+    fill="#f4fdf8"
+    d="M18 18h6v11l11-11h8l-12 12 13 16h-8l-12-15v15h-6z"
+  />
+  <path
+    fill="#d9f5e5"
+    d="M35 24h7l3 9 3-9h7l-6.5 18h-7z"
+  />
+</svg>
+
