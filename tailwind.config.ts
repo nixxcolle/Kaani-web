@@ -49,12 +49,18 @@ export default {
         },
         // KaAni Web custom colors
         kaani: {
-          primary: "hsl(var(--kaani-green-primary))",
-          light: "hsl(var(--kaani-green-light))",
-          muted: "hsl(var(--kaani-green-muted))",
-          dark: "hsl(var(--kaani-green-dark))",
+          primary: "hsl(var(--kaani-primary))",
+          "primary-light": "hsl(var(--kaani-primary-light))",
+          light: "hsl(var(--kaani-light))",
+          muted: "hsl(var(--kaani-muted))",
+          dark: "hsl(var(--kaani-dark))",
           sage: "hsl(var(--kaani-sage))",
           forest: "hsl(var(--kaani-forest))",
+          ocean: "hsl(var(--kaani-ocean))",
+          "ocean-light": "hsl(var(--kaani-ocean-light))",
+          "ocean-dark": "hsl(var(--kaani-ocean-dark))",
+          amber: "hsl(var(--kaani-amber))",
+          "amber-light": "hsl(var(--kaani-amber-light))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -67,6 +73,10 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        heading: ["var(--font-heading)", "system-ui", "sans-serif"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -76,10 +86,13 @@ export default {
         'gradient-hero': 'var(--gradient-hero)',
         'gradient-card': 'var(--gradient-card)',
         'gradient-section': 'var(--gradient-section)',
+        'gradient-accent': 'var(--gradient-accent)',
+        'gradient-gold': 'var(--gradient-gold)',
       },
       boxShadow: {
         'card': 'var(--shadow-card)',
         'elevated': 'var(--shadow-elevated)',
+        'glow': 'var(--shadow-glow)',
       },
       transitionTimingFunction: {
         'smooth': 'var(--transition-smooth)',

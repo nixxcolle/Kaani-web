@@ -1,0 +1,418 @@
+import { useMemo, useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { 
+  Search, 
+  Sprout, 
+  Fish, 
+  Scale, 
+  Cpu, 
+  BookOpen, 
+  Clock, 
+  X, 
+  Download, 
+  Sparkles, 
+  CheckCircle2, 
+  ArrowLeft,
+  Share2,
+  Printer
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { supabase } from "@/lib/supabase";
+import { DEFAULT_LEARNING_MODULES, LearningModule } from "@/lib/data";
+import { useToast } from "@/hooks/use-toast";
+
+const ModuleSelection = () => {
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [modules, setModules] = useState<LearningModule[]>(DEFAULT_LEARNING_MODULES);
+  const [activeModule, setActiveModule] = useState<LearningModule | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("modules")
+          .select("id, title, description, file_data, file_name")
+          .order("created_at", { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          const merged: LearningModule[] = data.map((mod: any, idx: number) => {
+            const titleLower = mod.title.toLowerCase();
+            const isFish = titleLower.includes("fish") || titleLower.includes("aquaculture") || titleLower.includes("marine");
+            const isLaw = titleLower.includes("law") || titleLower.includes("legal") || titleLower.includes("code");
+            
+            const category: LearningModule["category"] = isFish 
+              ? "Fisheries & Marine" 
+              : isLaw 
+              ? "Policy & Law" 
+              : "Sustainable Crops";
+
+            return {
+              id: mod.id,
+              title: mod.title,
+              category,
+              description: mod.description || "Comprehensive guide on agricultural and fisheries management.",
+              readTimeMinutes: 8 + (idx % 5),
+              difficulty: idx % 2 === 0 ? "Beginner" : "Intermediate",
+              objectives: [
+                "Understand fundamental biological and environmental principles",
+                "Learn step-by-step best practices tailored for the Philippines",
+                "Implement sustainable resource management"
+              ],
+              contentSections: [
+                {
+                  heading: "Overview & Objectives",
+                  body: mod.description || "This module provides essential training on practical implementation.",
+                  keyTakeaway: "Consistent monitoring and adherence to biological thresholds are vital for long-term harvest sustainability."
+                }
+              ],
+              file_name: mod.file_name || "Training_Guide.pdf",
+              file_data: mod.file_data
+            };
+          });
+
+          // Merge with default modules so there is rich content
+          setModules([...DEFAULT_LEARNING_MODULES, ...merged]);
+        } else {
+          setModules(DEFAULT_LEARNING_MODULES);
+        }
+      } catch (err) {
+        console.warn("Using offline learning modules pool:", err);
+        setModules(DEFAULT_LEARNING_MODULES);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModules();
+  }, []);
+
+  const categories = ["All", "Fisheries & Marine", "Sustainable Crops", "Policy & Law", "Agri-Tech"];
+
+  const filteredModules = useMemo(() => {
+    let result = modules;
+
+    if (selectedCategory !== "All") {
+      result = result.filter(m => m.category.toLowerCase() === selectedCategory.toLowerCase());
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      result = result.filter(m =>
+        `${m.title} ${m.description} ${m.category}`.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [searchQuery, selectedCategory, modules]);
+
+  const handleOpenModule = (mod: LearningModule) => {
+    setActiveModule(mod);
+  };
+
+  const handlePrintOrDownload = (mod: LearningModule) => {
+    if (mod.file_data) {
+      try {
+        let base64Data = mod.file_data;
+        if (base64Data.includes(",")) {
+          base64Data = base64Data.split(",")[1];
+        }
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        return;
+      } catch (e) {
+        console.warn("Error decoding PDF blob, falling back to window print:", e);
+      }
+    }
+
+    // Interactive clean print preview fallback
+    window.print();
+  };
+
+  const getCategoryIcon = (cat: string) => {
+    switch (cat) {
+      case "Fisheries & Marine":
+        return <Fish className="h-6 w-6 text-sky-600" />;
+      case "Sustainable Crops":
+        return <Sprout className="h-6 w-6 text-emerald-600" />;
+      case "Policy & Law":
+        return <Scale className="h-6 w-6 text-purple-600" />;
+      case "Agri-Tech":
+        return <Cpu className="h-6 w-6 text-amber-600" />;
+      default:
+        return <BookOpen className="h-6 w-6 text-emerald-600" />;
+    }
+  };
+
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-section text-kaani-dark">
+        <Header />
+
+        <main className="container px-4 py-8 md:py-12">
+          <div className="max-w-6xl mx-auto space-y-8">
+            
+            {/* Top Breadcrumb & Return */}
+            <div className="flex items-center justify-between">
+              <Link 
+                to="/learning" 
+                className="inline-flex items-center gap-1.5 text-xs md:text-sm font-semibold text-muted-foreground hover:text-kaani-primary transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Learning Hub</span>
+              </Link>
+            </div>
+
+            {/* Header Banner */}
+            <div className="rounded-3xl bg-white shadow-elevated border border-emerald-100 p-6 md:p-10 text-center space-y-4 relative overflow-hidden">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-kaani-primary text-xs md:text-sm font-bold border border-emerald-200">
+                <BookOpen className="h-4 w-4" />
+                <span>Curated Knowledge Library</span>
+              </div>
+
+              <h1 className="text-3xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
+                Practical Training Modules
+              </h1>
+
+              <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Step-by-step guides, biological threshold tables, and statutory checklists. Click on any module to read online or download for offline field use.
+              </p>
+
+              {/* Search Bar */}
+              <div className="max-w-2xl mx-auto pt-2">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by topic, crop, fish species, or law (e.g., RAS, Tilapia, Soil)..."
+                    className="h-13 rounded-2xl border-slate-200 bg-slate-50/70 pl-11 pr-4 text-sm md:text-base focus-visible:ring-2 focus-visible:ring-kaani-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs md:text-sm font-semibold transition-all border ${
+                      selectedCategory === cat
+                        ? "bg-kaani-primary text-white border-kaani-primary shadow-xs"
+                        : "bg-white text-muted-foreground border-slate-200 hover:bg-emerald-50 hover:text-kaani-dark"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Modules Grid */}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
+              {filteredModules.map((module) => (
+                <Card
+                  key={module.id}
+                  onClick={() => handleOpenModule(module)}
+                  className="rounded-3xl border border-slate-100 bg-white shadow-card hover:shadow-elevated transition-all duration-300 cursor-pointer group hover:-translate-y-1 flex flex-col justify-between p-6"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        {getCategoryIcon(module.category)}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] uppercase font-bold border-slate-200 text-muted-foreground">
+                          {module.category}
+                        </Badge>
+                        <Badge className="text-[10px]" variant="secondary">
+                          {module.difficulty}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <CardTitle className="text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors">
+                      {module.title}
+                    </CardTitle>
+
+                    <CardDescription className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                      {module.description}
+                    </CardDescription>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {module.readTimeMinutes} min read
+                    </span>
+
+                    <span className="text-xs font-bold text-kaani-primary group-hover:underline flex items-center gap-1">
+                      Read Module →
+                    </span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {filteredModules.length === 0 && (
+              <div className="py-16 text-center bg-white rounded-3xl border border-slate-100 p-8">
+                <BookOpen className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-slate-800">No modules found</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  We couldn't find any modules matching "{searchQuery}". Try selecting another category.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("All");
+                  }}
+                  className="rounded-xl text-xs font-bold"
+                >
+                  Reset Filters
+                </Button>
+              </div>
+            )}
+
+          </div>
+        </main>
+
+        {/* ============================================================ */}
+        {/* INTERACTIVE FULL-SCREEN / MODAL READER FOR MODULES */}
+        {/* ============================================================ */}
+        {activeModule && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-elevated border border-emerald-100 overflow-hidden animate-in zoom-in-95 duration-200">
+              
+              {/* Modal Header */}
+              <div className="p-6 md:p-8 bg-gradient-to-r from-emerald-50 to-sky-50 border-b border-emerald-100 flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs border-emerald-300 bg-white font-bold text-emerald-800">
+                      {activeModule.category}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> {activeModule.readTimeMinutes} min read
+                    </span>
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-slate-900">
+                    {activeModule.title}
+                  </h2>
+                </div>
+
+                <button
+                  onClick={() => setActiveModule(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Modal Body / Scrollable Content */}
+              <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1 text-slate-800 leading-relaxed text-sm md:text-base">
+                
+                {/* Learning Objectives Callout */}
+                {activeModule.objectives && activeModule.objectives.length > 0 && (
+                  <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      Key Learning Objectives
+                    </h4>
+                    <ul className="space-y-2 text-xs md:text-sm text-emerald-950">
+                      {activeModule.objectives.map((obj, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="font-bold text-emerald-600">•</span>
+                          <span>{obj}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Formatted Content Sections */}
+                {activeModule.contentSections && activeModule.contentSections.map((sec, i) => (
+                  <div key={i} className="space-y-3 pt-2">
+                    <h3 className="text-lg md:text-xl font-bold font-heading text-slate-900">
+                      {sec.heading}
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {sec.body}
+                    </p>
+                    {sec.keyTakeaway && (
+                      <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
+                        <strong>Practical Takeaway:</strong> {sec.keyTakeaway}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+              </div>
+
+              {/* Modal Footer Controls */}
+              <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePrintOrDownload(activeModule)}
+                  className="rounded-xl flex items-center gap-2 text-xs font-bold border-slate-300"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print / Save PDF Guide
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setActiveModule(null)}
+                    className="text-xs font-semibold"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                    asChild
+                  >
+                    <Link to="/quiz?start=true">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                      Take Quiz on this Topic
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        <Footer />
+      </div>
+    </ProtectedRoute>
+  );
+};
+
+export default ModuleSelection;
