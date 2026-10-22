@@ -2,35 +2,127 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
   BookOpen, 
-  Sparkles, 
+  PlayCircle, 
+  Users, 
+  Award, 
+  Search, 
+  Clock, 
   ArrowRight, 
   Fish, 
   Sprout, 
-  Scale, 
-  Cpu, 
-  CheckCircle2, 
   GraduationCap, 
-  FileText,
-  Clock,
-  Award
+  CheckCircle2, 
+  Sparkles,
+  Layers,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const Learning = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  const originalModules = [
+    {
+      id: "mod-crop-1",
+      title: "Sustainable Farming Basics",
+      description: "Learn fundamental principles of sustainable agriculture, organic soil management, and composting.",
+      duration: "2 hours",
+      lessons: 8,
+      difficulty: "Beginner",
+      category: "Agriculture",
+      categoryParam: "Sustainable Crops"
+    },
+    {
+      id: "mod-fish-1",
+      title: "Aquaculture Fundamentals",
+      description: "Introduction to fish farming techniques, pond stocking density, and water quality management.",
+      duration: "3 hours",
+      lessons: 12,
+      difficulty: "Beginner",
+      category: "Fisheries",
+      categoryParam: "Fisheries & Marine"
+    },
+    {
+      id: "mod-crop-2",
+      title: "Integrated Pest Management",
+      description: "Eco-friendly biological approaches to pest control, crop protection, and natural companion planting.",
+      duration: "2.5 hours",
+      lessons: 10,
+      difficulty: "Intermediate",
+      category: "Agriculture",
+      categoryParam: "Sustainable Crops"
+    },
+    {
+      id: "mod-fish-2",
+      title: "Marine Conservation & Sanctuaries",
+      description: "Understanding coastal ecosystems, marine protected areas (MPAs), and sustainable municipal fishing.",
+      duration: "2 hours",
+      lessons: 9,
+      difficulty: "Intermediate",
+      category: "Fisheries",
+      categoryParam: "Fisheries & Marine"
+    },
+    {
+      id: "mod-tech-1",
+      title: "Modern Irrigation Systems",
+      description: "Smart solar drip irrigation technologies, gravity filtration, and efficient water conservation methods.",
+      duration: "1.5 hours",
+      lessons: 6,
+      difficulty: "Advanced",
+      category: "Technology",
+      categoryParam: "Agri-Tech"
+    },
+    {
+      id: "mod-bus-1",
+      title: "Agricultural Economics & Cooperatives",
+      description: "Market pricing strategies, cooperative organization, value-chain optimization, and farm bookkeeping.",
+      duration: "3 hours",
+      lessons: 15,
+      difficulty: "Advanced",
+      category: "Business",
+      categoryParam: "Policy & Law"
+    }
+  ];
+
+  const features = [
+    {
+      icon: BookOpen,
+      title: "Interactive Modules",
+      description: "Comprehensive step-by-step guides with practical field examples and case studies."
+    },
+    {
+      icon: PlayCircle,
+      title: "Practical Blueprints",
+      description: "Detailed schematics demonstrating real-world agricultural and RAS applications."
+    },
+    {
+      icon: Users,
+      title: "Community Wisdom",
+      description: "Local knowledge from experienced Filipino farmers, fisherfolk, and researchers."
+    },
+    {
+      icon: Award,
+      title: "Skills Progression",
+      description: "Track your mastery across crops, fisheries, environmental laws, and agri-tech."
+    }
+  ];
+
   const learningPaths = [
     {
       role: "For Fisherfolk & Coastal Communities",
       icon: Fish,
       badge: "Fisheries Focus",
-      color: "bg-sky-50 border-sky-200 text-sky-900",
+      color: "bg-sky-50/70 border-sky-200/80 text-sky-900",
       accent: "text-sky-600",
       topics: [
-        "Recirculating Aquaculture Systems (RAS) basics",
-        "Water quality parameters: DO, Ammonia, and pH balance",
+        "Recirculating Aquaculture Systems (RAS) setups",
+        "Water quality parameters: DO, Ammonia, and pH",
         "Philippine Fisheries Code (RA 8550/10654) compliance",
         "Mangrove preservation and nursery reef protection"
       ],
@@ -41,7 +133,7 @@ const Learning = () => {
       role: "For Smallholder Crop Farmers",
       icon: Sprout,
       badge: "Agriculture Focus",
-      color: "bg-emerald-50 border-emerald-200 text-emerald-900",
+      color: "bg-emerald-50/70 border-emerald-200/80 text-emerald-900",
       accent: "text-emerald-600",
       topics: [
         "African Nightcrawler vermicomposting setups",
@@ -56,141 +148,218 @@ const Learning = () => {
       role: "For Students & Agri-Entrepreneurs",
       icon: GraduationCap,
       badge: "Academic & Tech",
-      color: "bg-purple-50 border-purple-200 text-purple-900",
+      color: "bg-purple-50/70 border-purple-200/80 text-purple-900",
       accent: "text-purple-600",
       topics: [
         "Environmental Compliance Certificates (ECC) via DENR",
         "Hydroponic & vertical farming unit economics",
-        "Agricultural precision drone multispectral imaging",
-        "Preparation for national quiz competitions"
+        "Agricultural precision drone imaging",
+        "Field research methods and data collection"
       ],
       linkText: "Explore Agri-Tech & Law",
       categoryParam: "Agri-Tech"
     }
   ];
 
+  const categories = ["All", "Agriculture", "Fisheries", "Technology", "Business"];
+
+  const filteredModules = originalModules.filter((module) => {
+    const matchesSearch = 
+      module.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      module.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || module.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const getDifficultyBadge = (difficulty: string) => {
+    switch (difficulty) {
+      case "Beginner":
+        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100 text-xs">Beginner</Badge>;
+      case "Intermediate":
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100 text-xs">Intermediate</Badge>;
+      case "Advanced":
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 text-xs">Advanced</Badge>;
+      default:
+        return <Badge variant="outline">{difficulty}</Badge>;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-section">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
       {/* Hero Section */}
-      <section className="py-14 md:py-20">
+      <section className="py-14 md:py-20 bg-gradient-section border-b border-emerald-100/60">
         <div className="container px-4">
-          <div className="max-w-4xl mx-auto text-center space-y-4">
+          <div className="max-w-3xl mx-auto text-center space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-kaani-primary text-xs md:text-sm font-bold border border-emerald-200">
               <BookOpen className="h-4 w-4" />
               <span>Comprehensive Knowledge Center</span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-extrabold font-heading text-kaani-dark tracking-tight">
-              Fisheries & Agriculture <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600">
-                Learning Hub
-              </span>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold font-heading text-kaani-dark tracking-tight">
+              Learning Hub
             </h1>
 
-            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Step-by-step modular training, practical blueprints, and gamified quizzes designed to build sustainable livelihoods across the Philippines.
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Master agriculture and fisheries through practical modules, technical blueprints, and community-driven learning resources.
             </p>
+            
+            {/* Search Bar */}
+            <div className="relative max-w-lg mx-auto pt-2">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search courses, topics, or skills (e.g. soil, fish, RAS)..." 
+                className="pl-11 pr-4 py-6 rounded-2xl border-emerald-200 bg-white shadow-sm text-sm focus-visible:ring-emerald-500"
+              />
+            </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Button 
-                size="lg" 
-                className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-2xl py-6 px-8 shadow-elevated font-bold text-base"
-                asChild
-              >
-                <Link to="/modules">
-                  Browse All Modules <ArrowRight className="h-4 w-4 ml-2" />
-                </Link>
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-emerald-200 text-kaani-dark hover:bg-emerald-50 rounded-2xl py-6 px-8 font-bold text-base"
-                asChild
-              >
-                <Link to="/quiz">
-                  <Sparkles className="h-4 w-4 mr-2 text-amber-500" />
-                  Test Skills in Quiz Arena
-                </Link>
-              </Button>
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    selectedCategory === cat
+                      ? "bg-kaani-primary text-white shadow-xs"
+                      : "bg-white text-slate-600 hover:bg-emerald-50 border border-slate-200"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Core Dual Feature Banners */}
-      <section className="py-8 pb-14">
+      {/* Why Choose Our Learning Platform */}
+      <section className="py-16 bg-white border-b border-emerald-100/60">
         <div className="container px-4">
-          <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
-            
-            {/* Learning Modules Card */}
-            <Card className="rounded-3xl border border-emerald-100 bg-white shadow-elevated overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
-              <div className="h-3 bg-emerald-500"></div>
-              <CardHeader className="p-8">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-100/80 text-kaani-primary flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <BookOpen className="h-7 w-7" />
-                </div>
-                <Badge className="w-fit text-[10px] font-bold uppercase tracking-wider mb-2 bg-emerald-100 text-emerald-800 border-emerald-200">
-                  Interactive Library
-                </Badge>
-                <CardTitle className="text-2xl font-bold font-heading text-slate-900">
-                  Modular Training Library
-                </CardTitle>
-                <CardDescription className="text-sm md:text-base text-muted-foreground mt-2 leading-relaxed">
-                  Structured reading modules with key takeaways, diagrams, water quality monitoring, and downloadable references.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 pt-0">
-                <Button 
-                  className="w-full bg-kaani-primary hover:bg-kaani-dark text-white font-bold py-6 rounded-xl shadow-xs"
-                  asChild
-                >
-                  <Link to="/modules">
-                    Open Modules Library <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="text-center max-w-2xl mx-auto mb-12 space-y-2">
+            <span className="text-xs uppercase font-extrabold tracking-wider text-kaani-primary bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              Open Educational Resources
+            </span>
+            <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
+              Why Choose Our Learning Platform?
+            </h2>
+          </div>
 
-            {/* Quiz Arena Card */}
-            <Card className="rounded-3xl border border-amber-200 bg-white shadow-elevated overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
-              <div className="h-3 bg-amber-500"></div>
-              <CardHeader className="p-8">
-                <div className="w-14 h-14 rounded-2xl bg-amber-100/80 text-amber-700 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Sparkles className="h-7 w-7 text-amber-600" />
-                </div>
-                <Badge className="w-fit text-[10px] font-bold uppercase tracking-wider mb-2 bg-amber-100 text-amber-800 border-amber-200">
-                  Interactive Quiz
-                </Badge>
-                <CardTitle className="text-2xl font-bold font-heading text-slate-900">
-                  Knowledge Quiz Arena
-                </CardTitle>
-                <CardDescription className="text-sm md:text-base text-muted-foreground mt-2 leading-relaxed">
-                  Put what you've learned to the test! Earn XP, maintain combo streaks, and rise on the national community scoreboard.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 pt-0">
-                <Button 
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-6 rounded-xl shadow-xs"
-                  asChild
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <Card 
+                  key={index} 
+                  className="text-center rounded-3xl border border-slate-100 shadow-card hover:shadow-elevated transition-all duration-300 p-6 flex flex-col justify-between group hover:-translate-y-1"
                 >
-                  <Link to="/quiz">
-                    Launch Quiz Arena <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
+                  <CardHeader className="p-0">
+                    <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-50 text-kaani-primary flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-200 border border-emerald-100">
+                      <Icon className="h-7 w-7" />
+                    </div>
+                    <CardTitle className="text-lg font-bold font-heading text-kaani-dark">{feature.title}</CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                      {feature.description}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Recommended Learning Pathways */}
-      <section className="py-14 bg-white border-t border-emerald-100">
+      {/* Featured Learning Modules */}
+      <section className="py-16 md:py-20 bg-gradient-section">
+        <div className="container px-4">
+          <div className="max-w-3xl mx-auto text-center mb-12 space-y-3">
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-kaani-primary bg-emerald-100/70 px-3 py-1 rounded-full border border-emerald-200">
+              <Layers className="h-3.5 w-3.5" />
+              <span>Modular Curriculum</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">
+              Featured Learning Modules
+            </h2>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Select a module to access step-by-step instructions, key takeaways, and field checklists.
+            </p>
+          </div>
+
+          {filteredModules.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-3xl max-w-md mx-auto border border-dashed border-slate-200 p-8">
+              <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-60" />
+              <p className="font-bold text-slate-700">No modules match your query</p>
+              <p className="text-xs text-muted-foreground mt-1">Try resetting the filter or searching for another keyword.</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-4 rounded-xl text-xs"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory("All");
+                }}
+              >
+                Clear Search
+              </Button>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {filteredModules.map((module, index) => (
+                <Card 
+                  key={index} 
+                  className="rounded-3xl border border-slate-100 shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 bg-white overflow-hidden"
+                >
+                  <CardHeader className="p-6 pb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge variant="outline" className="text-xs font-semibold border-emerald-200 text-kaani-primary bg-emerald-50/50">
+                        {module.category}
+                      </Badge>
+                      {getDifficultyBadge(module.difficulty)}
+                    </div>
+                    <CardTitle className="text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors">
+                      {module.title}
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                      {module.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 pt-2 space-y-4">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-slate-100 pt-3">
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="h-3.5 w-3.5 text-kaani-primary" />
+                        {module.lessons} lessons
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5 text-kaani-primary" />
+                        {module.duration}
+                      </span>
+                    </div>
+
+                    <Button 
+                      className="w-full bg-kaani-primary hover:bg-kaani-dark text-white font-bold py-5 rounded-xl shadow-xs transition-all group-hover:shadow-md"
+                      asChild
+                    >
+                      <Link to={`/modules?category=${encodeURIComponent(module.categoryParam)}`}>
+                        <span>Start Learning</span>
+                        <ChevronRight className="h-4 w-4 ml-1.5 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Tailored Learning Pathways */}
+      <section className="py-16 bg-white border-t border-emerald-100/70">
         <div className="container px-4">
           <div className="max-w-5xl mx-auto space-y-10">
-            <div className="text-center space-y-3">
+            <div className="text-center space-y-2">
               <span className="text-xs font-bold uppercase tracking-wider text-kaani-primary bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
                 Curated Roadmaps
               </span>
@@ -198,7 +367,7 @@ const Learning = () => {
                 Tailored Learning Pathways
               </h2>
               <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
-                Select your focus area to access targeted modules tailored to your daily challenges and objectives.
+                Access curated topics matched to your specific role in agriculture or coastal management.
               </p>
             </div>
 
@@ -208,7 +377,7 @@ const Learning = () => {
                 return (
                   <div
                     key={idx}
-                    className={`rounded-3xl border p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-all ${path.color}`}
+                    className={`rounded-3xl border p-6 flex flex-col justify-between shadow-xs hover:shadow-card transition-all ${path.color}`}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-4">
@@ -226,18 +395,19 @@ const Learning = () => {
                         {path.topics.map((topic, tidx) => (
                           <li key={tidx} className="flex items-start gap-2">
                             <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${path.accent}`} />
-                            <span className="opacity-90">{topic}</span>
+                            <span className="opacity-90 leading-snug">{topic}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
                     <Button 
-                      className="w-full bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 rounded-xl font-bold text-xs"
+                      className="w-full bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 rounded-xl font-bold text-xs py-5"
                       asChild
                     >
                       <Link to={`/modules?category=${encodeURIComponent(path.categoryParam)}`}>
-                        {path.linkText} <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                        <span>{path.linkText}</span>
+                        <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
                       </Link>
                     </Button>
                   </div>
@@ -245,6 +415,34 @@ const Learning = () => {
               })}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-gradient-section border-t border-emerald-100/60">
+        <div className="container px-4">
+          <Card className="max-w-4xl mx-auto rounded-3xl bg-gradient-hero text-white p-8 md:p-12 text-center shadow-elevated">
+            <CardContent className="p-0 space-y-4">
+              <BookOpen className="h-10 w-10 text-emerald-200 mx-auto" />
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading">
+                Ready to Start Your Learning Journey?
+              </h2>
+              <p className="text-sm sm:text-base text-emerald-50/90 max-w-xl mx-auto leading-relaxed">
+                Join farmers, municipal fisherfolk, and students across the country who are building resilient harvests through accessible knowledge.
+              </p>
+              <div className="pt-2">
+                <Button 
+                  size="lg" 
+                  className="bg-white hover:bg-emerald-50 text-kaani-primary font-bold px-8 py-6 rounded-2xl shadow-md text-base"
+                  asChild
+                >
+                  <Link to="/modules">
+                    Browse All Learning Modules <ArrowRight className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
