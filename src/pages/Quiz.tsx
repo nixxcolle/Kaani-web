@@ -33,17 +33,14 @@ import Footer from "@/components/Footer";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_QUIZ_QUESTIONS, QuizQuestion, saveScoreToLocalLeaderboard } from "@/lib/data";
+import { DEFAULT_QUIZ_QUESTIONS, QuizQuestion, savePersonalQuizAttempt } from "@/lib/data";
 import { triggerConfetti, playQuizSound } from "@/lib/confetti";
 
 type QuizMode = "practice" | "timed";
 
 const CATEGORIES = [
-  { id: "all", name: "All Topics", icon: Sparkles, color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  { id: "Aquaculture & Marine Life", name: "Aquaculture & Marine", icon: Fish, color: "bg-sky-100 text-sky-800 border-sky-200" },
-  { id: "Sustainable Agriculture", name: "Sustainable Agriculture", icon: Sprout, color: "bg-green-100 text-green-800 border-green-200" },
-  { id: "Agri & Fisheries Laws", name: "Agri & Fisheries Laws", icon: Scale, color: "bg-purple-100 text-purple-800 border-purple-200" },
-  { id: "Agri-Tech & Innovations", name: "Agri-Tech & Innovations", icon: Cpu, color: "bg-amber-100 text-amber-800 border-amber-200" },
+  { id: "all", name: "All Module Questions", icon: Sparkles, color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  { id: "Fisheries", name: "Fisheries & Marine", icon: Fish, color: "bg-sky-100 text-sky-800 border-sky-200" },
 ];
 
 const Quiz = () => {
@@ -75,27 +72,31 @@ const Quiz = () => {
   const [score, setScore] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [playerName, setPlayerName] = useState<string>("");
+  const [currentUser, setCurrentUser] = useState<{ id?: string; name?: string; email?: string; is_guest?: boolean } | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showReview, setShowReview] = useState<boolean>(false);
   const [showExitDialog, setShowExitDialog] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Initialize current user name
+  // Initialize current user name & status
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
         const parsed = JSON.parse(stored);
+        setCurrentUser(parsed);
         setPlayerName(parsed.name || parsed.email || "Learner");
       } else {
+        setCurrentUser(null);
         setPlayerName("Agri Explorer");
       }
     } catch {
+      setCurrentUser(null);
       setPlayerName("Agri Explorer");
     }
   }, []);
 
-  // Fetch Questions from Supabase or fallback
+  // Load module knowledge recall questions pool
   const loadQuestions = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -104,18 +105,17 @@ const Quiz = () => {
         .order("created_at", { ascending: true });
 
       if (!error && data && data.length > 0) {
-        // Merge Supabase questions with our rich default questions
-        const formatted: QuizQuestion[] = data.map((q: any) => ({
-          ...q,
-          difficulty: q.difficulty || "Medium",
-          explanation: q.explanation || "Review the official guidelines to learn more.",
-        }));
-        setAllQuestions(formatted);
+        // Merge Supabase questions with our authoritative default module questions
+        const existingIds = new Set(data.map((q: any) => q.id));
+        const merged = [
+          ...DEFAULT_QUIZ_QUESTIONS,
+          ...data.filter((q: any) => !existingIds.has(q.id) && q.question && q.question.length > 10)
+        ];
+        setAllQuestions(merged);
       } else {
         setAllQuestions(DEFAULT_QUIZ_QUESTIONS);
       }
-    } catch (e) {
-      console.warn("Using offline built-in questions pool:", e);
+    } catch {
       setAllQuestions(DEFAULT_QUIZ_QUESTIONS);
     }
   }, []);
@@ -163,6 +163,40 @@ const Quiz = () => {
     });
   };
 
+  // Helper to dynamically shuffle choices (A, B, C, D) while preserving correct answer matching
+  const shuffleQuestionWithChoices = (q: QuizQuestion): QuizQuestion => {
+    const rawChoices = [
+      { text: q.choice_a, originalKey: "A" },
+      { text: q.choice_b, originalKey: "B" },
+      { text: q.choice_c, originalKey: "C" },
+      { text: q.choice_d, originalKey: "D" },
+    ];
+
+    // Fisher-Yates choice shuffle
+    const shuffled = [...rawChoices];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const letters = ["A", "B", "C", "D"];
+    let newCorrect = "A";
+    shuffled.forEach((item, idx) => {
+      if (item.originalKey === q.correct_answer) {
+        newCorrect = letters[idx];
+      }
+    });
+
+    return {
+      ...q,
+      choice_a: shuffled[0].text,
+      choice_b: shuffled[1].text,
+      choice_c: shuffled[2].text,
+      choice_d: shuffled[3].text,
+      correct_answer: newCorrect,
+    };
+  };
+
   const handleStartQuiz = () => {
     setLoading(true);
     let filtered = [...allQuestions];
@@ -180,11 +214,14 @@ const Quiz = () => {
       filtered = [...allQuestions];
     }
 
-    // Shuffle questions slightly for variety
-    const shuffled = [...filtered].sort(() => 0.5 - Math.random());
-    const finalSet = shuffled.slice(0, 10);
+    // Randomize selection of questions from the module
+    const shuffledOrder = [...filtered].sort(() => 0.5 - Math.random());
+    const subset = shuffledOrder.slice(0, Math.min(10, shuffledOrder.length));
 
-    setActiveQuestions(finalSet);
+    // Shuffle answer choices for each question so each quiz attempt varies
+    const randomizedQuestions = subset.map(shuffleQuestionWithChoices);
+
+    setActiveQuestions(randomizedQuestions);
     setIsQuizActive(true);
     setCurrentIndex(0);
     setSelectedAnswer(null);
@@ -279,7 +316,7 @@ const Quiz = () => {
       }
     });
 
-    const finalPercent = (correct / activeQuestions.length) * 100;
+    const finalPercent = Math.round((correct / activeQuestions.length) * 100);
     setCorrectCount(correct);
     setScore(finalPercent);
     setIsQuizCompleted(true);
@@ -287,39 +324,30 @@ const Quiz = () => {
     if (soundEnabled) playQuizSound('win');
     triggerConfetti();
 
-    // Auto save to local leaderboard
-    saveScoreToLocalLeaderboard(playerName || "Agri Learner", finalPercent, activeQuestions.length);
+    // Save personal attempt in local quiz history
+    savePersonalQuizAttempt({
+      score: finalPercent,
+      total_questions: activeQuestions.length,
+      correct_answers: correct,
+      date: new Date().toISOString(),
+      user_id: currentUser?.id,
+    });
 
-    // Try saving to Supabase if connected
-    try {
-      const stored = localStorage.getItem('user');
-      if (stored) {
-        const u = JSON.parse(stored);
+    // Record score for personal progress in Supabase if logged in
+    const isGuest = !currentUser || !!currentUser.is_guest || (currentUser.id && currentUser.id.startsWith("guest-"));
+    if (!isGuest && currentUser?.id) {
+      const validUserName = playerName.trim() || currentUser.name || "Learner";
+      try {
         await supabase.from('quiz_scores').insert({
-          user_id: u.id,
-          user_name: playerName,
+          user_id: currentUser.id,
+          user_name: validUserName,
           score: finalPercent,
           total_questions: activeQuestions.length,
           correct_answers: correct,
         });
+      } catch (e) {
+        console.warn("Could not save score to remote quiz_scores:", e);
       }
-    } catch {
-      // Offline fallback already stored locally
-    }
-  };
-
-  const handleSaveScoreWithName = async () => {
-    if (!playerName.trim()) return;
-    setIsSaving(true);
-    try {
-      saveScoreToLocalLeaderboard(playerName.trim(), score, activeQuestions.length);
-      toast({
-        title: "Score Saved to Leaderboard!",
-        description: `Rank updated for ${playerName} with ${Math.round(score)}% score.`,
-      });
-      navigate("/leaderboard");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -392,13 +420,13 @@ const Quiz = () => {
                 {/* Headings */}
                 <div className="text-center max-w-3xl mx-auto mb-8">
                   <h1 className="text-3xl sm:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight leading-tight">
-                    Test Your Knowledge in <br />
+                    Learning Module <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600">
-                      Agriculture & Fisheries
+                      Knowledge Quiz
                     </span>
                   </h1>
                   <p className="mt-4 text-base md:text-lg text-muted-foreground leading-relaxed">
-                    Challenge yourself, earn experience points (XP), climb the community leaderboard, and explore real-world Philippine farming and aquaculture insights!
+                    Test your understanding of the concepts covered in your learning module materials, earn experience points (XP), and reinforce your mastery!
                   </p>
                 </div>
 
@@ -419,10 +447,10 @@ const Quiz = () => {
                     <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">Combos</div>
                     <div className="text-xs text-muted-foreground font-medium">Streak XP Multipliers</div>
                   </div>
-                  <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100 text-center">
-                    <Trophy className="h-5 w-5 text-purple-600 mx-auto mb-1.5" />
-                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">Leaderboard</div>
-                    <div className="text-xs text-muted-foreground font-medium">Live Community Rank</div>
+                  <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-100 text-center">
+                    <CheckCircle2 className="h-5 w-5 text-teal-600 mx-auto mb-1.5" />
+                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">Recall Pool</div>
+                    <div className="text-xs text-muted-foreground font-medium">Direct Module Facts</div>
                   </div>
                 </div>
 
@@ -430,7 +458,7 @@ const Quiz = () => {
                 <div className="bg-emerald-50/40 rounded-2xl p-6 border border-emerald-100 mb-10">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-kaani-dark mb-4 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-kaani-primary" />
-                    Customize Your Quiz Session
+                    Customize Your Knowledge Recall Session
                   </h3>
 
                   {/* Category Filter */}
@@ -480,7 +508,7 @@ const Quiz = () => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-2">Quiz Mode</label>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-2">Recall Mode</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           onClick={() => setQuizMode("practice")}
@@ -491,7 +519,7 @@ const Quiz = () => {
                           }`}
                         >
                           <BookOpen className="h-3.5 w-3.5" />
-                          <span>Standard Practice</span>
+                          <span>Self-Paced Practice</span>
                         </button>
                         <button
                           onClick={() => setQuizMode("timed")}
@@ -502,7 +530,7 @@ const Quiz = () => {
                           }`}
                         >
                           <TimerIcon className="h-3.5 w-3.5" />
-                          <span>Speed Challenge (25s)</span>
+                          <span>Quick Recall (25s)</span>
                         </button>
                       </div>
                     </div>
@@ -518,17 +546,17 @@ const Quiz = () => {
                     className="bg-kaani-primary hover:bg-kaani-dark text-white font-bold text-base px-8 py-6 rounded-2xl shadow-elevated transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
                   >
                     <Sparkles className="h-5 w-5 text-emerald-200 animate-spin-slow" />
-                    <span>Start Quiz Arena</span>
+                    <span>Start Knowledge Check</span>
                   </Button>
 
                   <Button
                     size="lg"
                     variant="outline"
-                    onClick={() => navigate("/leaderboard")}
+                    onClick={() => navigate("/learning")}
                     className="border-emerald-200 text-kaani-dark hover:bg-emerald-50 font-bold text-base px-6 py-6 rounded-2xl flex items-center justify-center gap-2"
                   >
-                    <Trophy className="h-5 w-5 text-amber-500" />
-                    <span>View Community Leaderboard</span>
+                    <BookOpen className="h-5 w-5 text-emerald-700" />
+                    <span>Review Learning Modules</span>
                   </Button>
                 </div>
               </div>
@@ -693,7 +721,7 @@ const Quiz = () => {
                       <div className="text-3xl font-extrabold font-heading text-emerald-800">
                         {Math.round(score)}%
                       </div>
-                      <div className="text-xs text-emerald-700 font-semibold mt-1">Final Score</div>
+                      <div className="text-xs text-emerald-700 font-semibold mt-1">Recall Accuracy</div>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-sky-50 border border-sky-100 text-center">
@@ -703,45 +731,67 @@ const Quiz = () => {
                       <div className="text-xs text-sky-700 font-semibold mt-1">Correct Answers</div>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 text-center">
-                      <div className="text-3xl font-extrabold font-heading text-amber-800">
-                        +{Math.round(score * (activeQuestions.length / 10) * 10)}
+                    <div className="p-4 rounded-2xl bg-teal-50 border border-teal-100 text-center">
+                      <div className="text-2xl font-extrabold font-heading text-teal-800 truncate">
+                        {score >= 80 ? "Mastered" : score >= 60 ? "Reviewing" : "Re-read"}
                       </div>
-                      <div className="text-xs text-amber-700 font-semibold mt-1">XP Points Gained</div>
+                      <div className="text-xs text-teal-700 font-semibold mt-1">Recall Status</div>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 text-center">
                       <div className="text-3xl font-extrabold font-heading text-purple-800">
                         {maxStreak}x
                       </div>
-                      <div className="text-xs text-purple-700 font-semibold mt-1">Max Combo Streak</div>
+                      <div className="text-xs text-purple-700 font-semibold mt-1">Best Consecutive</div>
                     </div>
                   </div>
 
-                  {/* Save to Leaderboard Input */}
-                  <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900">Leaderboard Name</h4>
-                      <p className="text-xs text-muted-foreground">Confirm your nickname to record your score on the leaderboard.</p>
-                    </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <input
-                        type="text"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        placeholder="Your Nickname"
-                        className="px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-kaani-primary w-full sm:w-48 bg-white"
-                      />
+                  {/* Personal Recall Progress Notification */}
+                  {currentUser?.is_guest ? (
+                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+                          <BookOpen className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">Guest Review Session</h4>
+                          <p className="text-xs text-slate-600">Sign in to save your recall progress and keep track of reviewed modules.</p>
+                        </div>
+                      </div>
                       <Button
                         size="sm"
-                        disabled={isSaving}
-                        onClick={handleSaveScoreWithName}
-                        className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl shrink-0"
+                        onClick={() => navigate("/auth?mode=login")}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold shrink-0 shadow-xs"
                       >
-                        {isSaving ? "Saving..." : "Save Rank"}
+                        Sign In to Save History
                       </Button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-5 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <CheckCircle2 className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-emerald-950">Knowledge Progress Recorded</h4>
+                            <Badge className="bg-emerald-600 text-white text-[10px]">Saved to Profile</Badge>
+                          </div>
+                          <p className="text-xs text-emerald-800">
+                            {playerName.trim() || currentUser?.name} • Score: {Math.round(score)}% • Reviewed {activeQuestions.length} questions from Unit 1: Fish Physiology
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate("/learning")}
+                        className="border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded-xl font-bold shrink-0"
+                      >
+                        Review Module File
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Review Answers Toggle */}
                   <div className="border border-slate-200 rounded-2xl overflow-hidden">
@@ -751,7 +801,7 @@ const Quiz = () => {
                     >
                       <span className="flex items-center gap-2">
                         <BookOpen className="h-4 w-4 text-kaani-primary" />
-                        Review All {activeQuestions.length} Questions & Answers
+                        Review All {activeQuestions.length} Questions & Explanations
                       </span>
                       {showReview ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
@@ -766,7 +816,7 @@ const Quiz = () => {
                               <div className="flex items-start justify-between gap-2">
                                 <span className="text-xs font-bold text-slate-500">#{idx + 1}</span>
                                 <Badge variant={wasCorrect ? "default" : "destructive"} className="text-[10px]">
-                                  {wasCorrect ? "Correct" : "Incorrect"}
+                                   {wasCorrect ? "Correct" : "Incorrect"}
                                 </Badge>
                               </div>
                               <p className="text-sm font-semibold text-slate-900">{q.question}</p>
@@ -784,7 +834,7 @@ const Quiz = () => {
 
                               {q.explanation && (
                                 <p className="text-xs text-muted-foreground bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-2">
-                                  <strong>Insight:</strong> {q.explanation}
+                                  <strong>Concept Recall:</strong> {q.explanation}
                                 </p>
                               )}
                             </div>
@@ -802,7 +852,7 @@ const Quiz = () => {
                       className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl flex items-center justify-center gap-2 font-bold"
                     >
                       <RotateCcw className="h-4 w-4" />
-                      <span>Play Again</span>
+                      <span>Try Another Recall Attempt</span>
                     </Button>
                     <Button
                       size="lg"
@@ -810,16 +860,16 @@ const Quiz = () => {
                       onClick={() => setIsQuizActive(false)}
                       className="border-slate-300 rounded-xl font-bold"
                     >
-                      Choose Another Topic
+                      Select Different Topic
                     </Button>
                     <Button
                       size="lg"
                       variant="secondary"
-                      onClick={() => navigate("/leaderboard")}
-                      className="bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-200 rounded-xl font-bold flex items-center justify-center gap-2"
+                      onClick={() => navigate("/learning")}
+                      className="bg-emerald-100 text-emerald-950 hover:bg-emerald-200 border border-emerald-200 rounded-xl font-bold flex items-center justify-center gap-2"
                     >
-                      <Trophy className="h-4 w-4 text-amber-600" />
-                      Leaderboard
+                      <BookOpen className="h-4 w-4 text-emerald-700" />
+                      Back to Learning Modules
                     </Button>
                   </div>
 

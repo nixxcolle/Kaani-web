@@ -14,7 +14,8 @@ import {
   CheckCircle2, 
   ArrowLeft,
   Share2,
-  Printer
+  FileText,
+  ExternalLink
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,43 +54,57 @@ const ModuleSelection = () => {
           .order("created_at", { ascending: true });
 
         if (!error && data && data.length > 0) {
-          const merged: LearningModule[] = data.map((mod: any, idx: number) => {
-            const titleLower = mod.title.toLowerCase();
-            const isFish = titleLower.includes("fish") || titleLower.includes("aquaculture") || titleLower.includes("marine");
-            const isLaw = titleLower.includes("law") || titleLower.includes("legal") || titleLower.includes("code");
-            
-            const category: LearningModule["category"] = isFish 
-              ? "Fisheries & Marine" 
-              : isLaw 
-              ? "Policy & Law" 
-              : "Sustainable Crops";
+          // Only keep modules that have actual file data or file name
+          const validData = data.filter((m: any) => 
+            (m.file_data && m.file_data.trim().length > 0) || 
+            (m.file_name && m.file_name.trim().length > 0)
+          );
 
-            return {
-              id: mod.id,
-              title: mod.title,
-              category,
-              description: mod.description || "Comprehensive guide on agricultural and fisheries management.",
-              readTimeMinutes: 8 + (idx % 5),
-              difficulty: idx % 2 === 0 ? "Beginner" : "Intermediate",
-              objectives: [
-                "Understand fundamental biological and environmental principles",
-                "Learn step-by-step best practices tailored for the Philippines",
-                "Implement sustainable resource management"
-              ],
-              contentSections: [
-                {
-                  heading: "Overview & Objectives",
-                  body: mod.description || "This module provides essential training on practical implementation.",
-                  keyTakeaway: "Consistent monitoring and adherence to biological thresholds are vital for long-term harvest sustainability."
-                }
-              ],
-              file_name: mod.file_name || "Training_Guide.pdf",
-              file_data: mod.file_data
-            };
+          const combined: LearningModule[] = [...DEFAULT_LEARNING_MODULES];
+
+          validData.forEach((mod: any, idx: number) => {
+            const existingIdx = combined.findIndex(e => e.id === mod.id);
+            if (existingIdx >= 0) {
+              if (mod.file_data) combined[existingIdx].file_data = mod.file_data;
+              if (mod.file_name) combined[existingIdx].file_name = mod.file_name;
+              if (mod.description) combined[existingIdx].description = mod.description;
+            } else {
+              const titleLower = (mod.title || "").toLowerCase();
+              const isFish = titleLower.includes("fish") || titleLower.includes("aquaculture") || titleLower.includes("marine");
+              const isLaw = titleLower.includes("law") || titleLower.includes("legal") || titleLower.includes("code");
+              
+              const category: LearningModule["category"] = isFish 
+                ? "Fisheries & Marine" 
+                : isLaw 
+                ? "Policy & Law" 
+                : "Sustainable Crops";
+
+              combined.push({
+                id: mod.id,
+                title: mod.title,
+                category,
+                description: mod.description || "Comprehensive guide on agricultural and fisheries management.",
+                readTimeMinutes: 10 + (idx % 5),
+                difficulty: "Beginner",
+                objectives: [
+                  "Understand fundamental biological and environmental principles",
+                  "Learn step-by-step best practices tailored for the Philippines",
+                  "Implement sustainable resource management"
+                ],
+                contentSections: [
+                  {
+                    heading: "Overview & Objectives",
+                    body: mod.description || "This module provides essential training on practical implementation.",
+                    keyTakeaway: "Consistent monitoring and adherence to biological thresholds are vital for long-term harvest sustainability."
+                  }
+                ],
+                file_name: mod.file_name || "physio-LP1 (1) (2).pdf",
+                file_data: mod.file_data
+              });
+            }
           });
 
-          // Merge with default modules so there is rich content
-          setModules([...DEFAULT_LEARNING_MODULES, ...merged]);
+          setModules(combined);
         } else {
           setModules(DEFAULT_LEARNING_MODULES);
         }
@@ -104,7 +119,10 @@ const ModuleSelection = () => {
     fetchModules();
   }, []);
 
-  const categories = ["All", "Fisheries & Marine", "Sustainable Crops", "Policy & Law", "Agri-Tech"];
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(modules.map(m => m.category)));
+    return ["All", ...cats];
+  }, [modules]);
 
   const filteredModules = useMemo(() => {
     let result = modules;
@@ -127,7 +145,15 @@ const ModuleSelection = () => {
     setActiveModule(mod);
   };
 
-  const handlePrintOrDownload = (mod: LearningModule) => {
+  const handleOpenModuleGuide = (mod: LearningModule) => {
+    // 1. Direct to the actual PDF document asset if available
+    if (mod.file_name) {
+      const docUrl = `${import.meta.env.BASE_URL}assets/docs/${encodeURIComponent(mod.file_name)}`;
+      window.open(docUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    // 2. Open base64 blob if present
     if (mod.file_data) {
       try {
         let base64Data = mod.file_data;
@@ -142,15 +168,15 @@ const ModuleSelection = () => {
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
-        window.open(url, "_blank");
+        window.open(url, "_blank", "noopener,noreferrer");
         return;
       } catch (e) {
-        console.warn("Error decoding PDF blob, falling back to window print:", e);
+        console.warn("Error decoding PDF blob:", e);
       }
     }
 
-    // Interactive clean print preview fallback
-    window.print();
+    // 3. Fallback: ensure module is active in view
+    setActiveModule(mod);
   };
 
   const getCategoryIcon = (cat: string) => {
@@ -194,7 +220,7 @@ const ModuleSelection = () => {
                 <span>Curated Knowledge Library</span>
               </div>
 
-              <h1 className="text-3xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark tracking-tight">
                 Practical Training Modules
               </h1>
 
@@ -378,11 +404,12 @@ const ModuleSelection = () => {
               <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => handlePrintOrDownload(activeModule)}
-                  className="rounded-xl flex items-center gap-2 text-xs font-bold border-slate-300"
+                  onClick={() => handleOpenModuleGuide(activeModule)}
+                  className="rounded-xl flex items-center gap-2 text-xs font-bold border-emerald-300 text-emerald-800 bg-white hover:bg-emerald-50 hover:text-emerald-950 transition-colors shadow-xs"
                 >
-                  <Printer className="h-4 w-4" />
-                  Print / Save PDF Guide
+                  <FileText className="h-4 w-4 text-emerald-600" />
+                  <span>Open Full Learning Guide</span>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground ml-0.5" />
                 </Button>
 
                 <div className="flex items-center gap-2">

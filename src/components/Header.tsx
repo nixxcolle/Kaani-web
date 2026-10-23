@@ -1,19 +1,43 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Leaf, LogOut, CheckCircle2 } from "lucide-react";
+import { 
+  Home, 
+  Store, 
+  BookOpen, 
+  Scale, 
+  Leaf, 
+  Search, 
+  Menu, 
+  X, 
+  LogOut, 
+  User as UserIcon,
+  ShoppingBag,
+  ExternalLink
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+import { logout } from "@/lib/auth";
+
+interface UserProfile {
+  id?: string;
+  name?: string;
+  email?: string;
+  is_guest?: boolean;
+}
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState<{ name?: string; email?: string; is_guest?: boolean } | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState<UserProfile | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
     const readUser = () => {
-      const authStatus = localStorage.getItem('isAuthenticated');
-      const storedUser = localStorage.getItem('user');
-      if (authStatus === 'true' && storedUser) {
+      const authStatus = localStorage.getItem("isAuthenticated");
+      const storedUser = localStorage.getItem("user");
+      if (authStatus === "true" && storedUser) {
         try {
           setUser(JSON.parse(storedUser));
         } catch {
@@ -25,27 +49,34 @@ const Header = () => {
     };
 
     readUser();
-    window.addEventListener('storage', readUser);
-    window.addEventListener('auth-change', readUser);
+    window.addEventListener("storage", readUser);
+    window.addEventListener("auth-change", readUser);
     return () => {
-      window.removeEventListener('storage', readUser);
-      window.removeEventListener('auth-change', readUser);
+      window.removeEventListener("storage", readUser);
+      window.removeEventListener("auth-change", readUser);
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user');
+  const handleLogout = async () => {
+    await logout(user as any);
     setUser(null);
-    window.dispatchEvent(new Event('auth-change'));
-    navigate('/');
+    navigate("/");
   };
 
-  const navigation = [
-    { name: "Home", href: "/" },
-    { name: "Learning Hub", href: "/learning" },
-    { name: "Sustainability", href: "/sustainability" },
-    { name: "Legal Guide", href: "/legal" },
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setIsSearchOpen(false);
+      navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const navItems = [
+    { name: "Home", href: "/", icon: Home },
+    { name: "Kaani Market", href: "/market", icon: Store, isMarket: true },
+    { name: "Learning Hub", href: "/learning", icon: BookOpen },
+    { name: "Legal Information", href: "/legal", icon: Scale },
+    { name: "Sustainability", href: "/sustainability", icon: Leaf },
   ];
 
   const isActive = (href: string) => {
@@ -56,112 +87,227 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-emerald-100/80 bg-white/95 backdrop-blur-md transition-all shadow-xs">
-      <div className="container flex h-16 md:h-18 items-center justify-between px-4">
-        {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-hero text-white shadow-xs transition-transform duration-200 group-hover:scale-105">
-            <Leaf className="h-5 w-5 text-emerald-100" />
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-emerald-100/90 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] transition-all">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4 lg:px-8">
+        {/* Brand Identity / Logo on Left */}
+        <Link 
+          to="/" 
+          className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded-xl"
+          aria-label="Kaani Web Home"
+        >
+          {/* Logo badge with leaf and aquatic waves */}
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-md shadow-emerald-900/10 ring-1 ring-emerald-500/20 group-hover:scale-105 group-hover:shadow-emerald-900/20 transition-all duration-300">
+            <svg viewBox="0 0 32 32" className="w-7 h-7 drop-shadow-xs" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Vibrant farm leaf */}
+              <path 
+                d="M7 21C7 13.5 13.5 6 25 7C25 18 18 25 10 25C8.3 25 7 23.7 7 21Z" 
+                fill="#34d399" 
+              />
+              <path 
+                d="M10 23C13 19 17 14 24 9" 
+                stroke="#064e3b" 
+                strokeWidth="1.6" 
+                strokeLinecap="round" 
+              />
+              {/* Oceanic waves representing fisheries */}
+              <path 
+                d="M4 25.5C7.5 23.5 10.5 26.5 14 24.5C17.5 22.5 20.5 25.5 24 23.5C27 21.8 29.5 24 31 23" 
+                stroke="#38bdf8" 
+                strokeWidth="2.2" 
+                strokeLinecap="round" 
+              />
+              <path 
+                d="M6 28.5C9 26.5 12 28.8 15 27C18 25.2 21 28 24 26.5" 
+                stroke="#0284c7" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+              />
+            </svg>
           </div>
-          <span className="text-xl font-extrabold font-heading tracking-tight text-kaani-primary">
-            KaAni <span className="text-kaani-dark">Web</span>
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xl font-extrabold tracking-tight text-emerald-900 uppercase font-heading leading-tight group-hover:text-emerald-700 transition-colors">
+              Kaani <span className="text-emerald-600 font-black">Web</span>
+            </span>
+            <span className="text-[11px] font-semibold tracking-wider text-emerald-800/80 leading-none">
+              Learn &bull; Sell &bull; Grow &bull; Innovate
+            </span>
+          </div>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-1.5 lg:space-x-2">
-          {navigation.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  active
-                    ? "bg-emerald-100/80 text-kaani-primary font-bold shadow-xs"
-                    : "text-muted-foreground hover:text-kaani-dark hover:bg-emerald-50/60"
-                }`}
-              >
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* Right side navigation buttons for Desktop */}
+        <div className="hidden lg:flex items-center space-x-1 xl:space-x-2">
+          {/* Main Sections Navigation */}
+          <nav className="flex items-center space-x-1 xl:space-x-1.5" aria-label="Main Navigation">
+            {navItems.map((item) => {
+              const active = isActive(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                    active
+                      ? "bg-emerald-800 text-white shadow-sm shadow-emerald-900/20 ring-1 ring-emerald-700 font-bold"
+                      : "text-slate-700 hover:text-emerald-900 hover:bg-emerald-50/80"
+                  }`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <Icon className={`h-4 w-4 ${active ? "text-emerald-200" : "text-emerald-700"}`} />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
 
-        {/* Right side Profile / Auth */}
-        <div className="hidden md:flex items-center gap-3">
-          {user ? (
-            <div className="flex items-center gap-2.5 bg-emerald-50/80 border border-emerald-100 rounded-full pl-2 pr-3 py-1">
-              <div className="w-7 h-7 rounded-full bg-kaani-primary text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                {user.name ? user.name.charAt(0).toUpperCase() : "U"}
-              </div>
-              <span className="text-xs font-bold text-kaani-dark max-w-[110px] truncate leading-tight">
-                {user.name || "Learner"}
-              </span>
-              <button
-                onClick={handleLogout}
-                title="Sign out"
-                className="ml-1 p-1 rounded-full text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors"
-                aria-label="Logout"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs font-semibold text-muted-foreground hover:text-kaani-dark hover:bg-emerald-50 rounded-xl px-3"
-              asChild
+          {/* Quick Search Button */}
+          <div className="relative pl-1">
+            <button
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="p-2 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-emerald-50/80 transition-colors"
+              title="Search Products & Guides"
+              aria-label="Search"
             >
-              <Link to="/role-selection">Sign In</Link>
-            </Button>
-          )}
+              <Search className="h-4.5 w-4.5 text-slate-700" />
+            </button>
+
+            {/* Quick Search Popover */}
+            {isSearchOpen && (
+              <div className="absolute right-0 top-12 w-80 p-3 bg-white rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600" />
+                    <input
+                      type="text"
+                      placeholder="Search market or guides..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      autoFocus
+                      className="w-full pl-9 pr-3 py-1.5 text-sm bg-emerald-50/50 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    />
+                  </div>
+                  <Button type="submit" size="sm" className="bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl px-3 text-xs">
+                    Go
+                  </Button>
+                </form>
+              </div>
+            )}
+          </div>
+
+          {/* Auth Actions (Login & Register) */}
+          <div className="flex items-center space-x-2 pl-2 border-l border-emerald-100 ml-1">
+            {user ? (
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200/80 rounded-full pl-2 pr-2.5 py-1">
+                <div className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="h-3.5 w-3.5" />}
+                </div>
+                <span className="text-xs font-bold text-emerald-950 max-w-[100px] truncate">
+                  {user.name || "Learner"}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  title="Sign out"
+                  className="p-1 rounded-full text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  aria-label="Logout"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/auth"
+                  className="px-3.5 py-1.5 text-sm font-semibold text-emerald-900 hover:text-emerald-700 hover:bg-emerald-50/80 rounded-xl border border-transparent transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/role-selection"
+                  className="px-4 py-1.5 text-sm font-bold text-white bg-emerald-800 hover:bg-emerald-900 shadow-xs hover:shadow-md rounded-xl transition-all active:scale-95"
+                >
+                  Register
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Mobile menu button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="md:hidden text-kaani-dark p-2 rounded-xl"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle Navigation"
-        >
-          {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
+        {/* Mobile menu trigger */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="p-2 text-emerald-900 rounded-xl hover:bg-emerald-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            aria-label="Toggle navigation menu"
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Responsive Mobile Navigation Drawer */}
       {isMenuOpen && (
-        <div className="md:hidden border-t border-emerald-100 bg-white/98 px-4 py-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200 shadow-lg">
-          {navigation.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-base font-semibold transition-all ${
-                  active
-                    ? "bg-emerald-100/90 text-kaani-primary font-bold"
-                    : "text-muted-foreground hover:text-kaani-dark hover:bg-emerald-50/70"
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
+        <div className="lg:hidden border-t border-emerald-100 bg-white/98 backdrop-blur-md px-5 py-5 space-y-4 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
+          {/* Mobile search bar */}
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <Search className="absolute left-3.5 top-3 h-4 w-4 text-emerald-600" />
+            <input
+              type="text"
+              placeholder="Search products, guides, laws..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-20 py-2 text-sm bg-emerald-50/60 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              className="absolute right-1 top-1 h-7 bg-emerald-800 text-white rounded-lg px-2.5 text-xs font-semibold"
+            >
+              Search
+            </Button>
+          </form>
 
-          <div className="pt-3 border-t border-emerald-100">
+          {/* Navigation Links */}
+          <nav className="space-y-1.5" aria-label="Mobile Navigation">
+            {navItems.map((item) => {
+              const active = isActive(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex items-center justify-between px-4 py-3 rounded-xl text-base font-semibold transition-all ${
+                    active
+                      ? "bg-emerald-800 text-white font-bold shadow-xs"
+                      : "text-slate-700 hover:text-emerald-950 hover:bg-emerald-50/80"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-5 w-5 ${active ? "text-emerald-200" : "text-emerald-700"}`} />
+                    <span>{item.name}</span>
+                  </div>
+                  {item.isMarket && (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      active ? "bg-emerald-700 text-emerald-100" : "bg-emerald-100 text-emerald-800"
+                    }`}>
+                      Fresh
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Mobile Auth and Action Section */}
+          <div className="pt-4 border-t border-emerald-100">
             {user ? (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-kaani-primary text-white flex items-center justify-center font-bold text-xs">
-                    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                    {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="h-4 w-4" />}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-kaani-dark">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.is_guest ? "Guest Learner" : "Member"}</p>
+                    <p className="text-sm font-bold text-emerald-950">{user.name}</p>
+                    <p className="text-xs text-emerald-700">{user.is_guest ? "Guest Learner" : "Verified Member"}</p>
                   </div>
                 </div>
                 <Button
@@ -171,21 +317,30 @@ const Header = () => {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="text-xs text-destructive border-red-200 hover:bg-red-50"
+                  className="text-xs text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl"
                 >
                   <LogOut className="h-3.5 w-3.5 mr-1" />
                   Logout
                 </Button>
               </div>
             ) : (
-              <Button 
-                variant="outline" 
-                className="w-full rounded-xl border-emerald-200 text-sm font-semibold" 
-                asChild 
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <Link to="/role-selection">Sign In</Link>
-              </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  className="rounded-xl border-emerald-300 text-emerald-900 font-bold"
+                  asChild
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Link to="/auth">Login</Link>
+                </Button>
+                <Button
+                  className="rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold shadow-xs"
+                  asChild
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Link to="/role-selection">Register</Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>

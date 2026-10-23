@@ -73,32 +73,82 @@ const Legal = () => {
 
   const legalAgencies = [
     {
-      title: "BFAR – Fisheries & Aquatic Resources",
-      role: "Fishing vessel licensing, aquaculture permits, closed-season notices",
+      title: "Bureau of Fisheries and Aquatic Resources (BFAR)",
+      subTitle: "Republic of the Philippines • Department of Agriculture",
+      role: "Commercial and municipal fishing vessel licensing, aquaculture permits, closed-season notices, and municipal water boundary compliance.",
       url: "https://www.bfar.da.gov.ph",
+      domain: "www.bfar.da.gov.ph",
       tag: "Fisheries Authority",
-      icon: Shield
+      icon: Shield,
+      themeBg: "from-[#082847] via-[#0c3e6d] to-[#072440]",
+      badgeBg: "bg-blue-950/90 text-cyan-300 border-cyan-500/50",
+      accentBorder: "border-cyan-200/50 group-hover:border-cyan-400",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(0,163,173,0.22)]"
     },
     {
-      title: "DENR-EMB – Environmental Management",
-      role: "Environmental Compliance Certificates (ECC) and water discharge permits",
+      title: "Environmental Management Bureau (DENR-EMB)",
+      subTitle: "Department of Environment and Natural Resources",
+      role: "Issuance of Environmental Compliance Certificates (ECC), discharge permits for aquaculture, water quality monitoring, and solid waste compliance.",
       url: "https://emb.gov.ph",
+      domain: "emb.gov.ph",
       tag: "Environmental Law",
-      icon: Scale
+      icon: Scale,
+      themeBg: "from-[#09351e] via-[#105631] to-[#072a18]",
+      badgeBg: "bg-emerald-950/90 text-emerald-300 border-emerald-500/50",
+      accentBorder: "border-emerald-200/50 group-hover:border-emerald-500",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(16,185,129,0.22)]"
     },
     {
-      title: "PAO – Public Attorney's Office",
-      role: "Free legal representation and counsel for indigent farmers and fisherfolk",
+      title: "Public Attorney's Office (PAO)",
+      subTitle: "Republic of the Philippines • Department of Justice",
+      role: "Free legal representation, legal advice, and affidavits for indigent farmers, municipal fisherfolk, and agrarian reform beneficiaries.",
       url: "https://pao.gov.ph/contact-us",
+      domain: "pao.gov.ph",
       tag: "Free Legal Aid",
-      icon: Building2
+      icon: Building2,
+      themeBg: "from-[#420b11] via-[#6e131d] to-[#36090e]",
+      badgeBg: "bg-rose-950/90 text-amber-300 border-amber-400/50",
+      accentBorder: "border-rose-200/50 group-hover:border-rose-400",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(218,165,32,0.20)]"
     },
     {
-      title: "NWRB – National Water Resources Board",
-      role: "Water rights permits, commercial deep well extraction, and irrigation permits",
+      title: "National Water Resources Board (NWRB)",
+      subTitle: "Republic of the Philippines • Water Permitting Authority",
+      role: "Water rights permits, commercial deep well extraction licenses, river intake regulation, and agricultural irrigation allocations.",
       url: "https://nwrb.gov.ph",
+      domain: "nwrb.gov.ph",
       tag: "Water Rights",
-      icon: FileText
+      icon: FileText,
+      themeBg: "from-[#052e3c] via-[#0a4b5f] to-[#042430]",
+      badgeBg: "bg-teal-950/90 text-teal-300 border-teal-500/50",
+      accentBorder: "border-teal-200/50 group-hover:border-teal-400",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(23,126,137,0.22)]"
+    },
+    {
+      title: "Department of Agriculture (DA)",
+      subTitle: "Republic of the Philippines • Executive Department",
+      role: "National agricultural food security policies, farm input subsidies, machinery modernization grants, and statutory sanitary inspections.",
+      url: "https://www.da.gov.ph",
+      domain: "www.da.gov.ph",
+      tag: "Agricultural Authority",
+      icon: Shield,
+      themeBg: "from-[#103a1d] via-[#1a5b2f] to-[#0c2f17]",
+      badgeBg: "bg-emerald-950/90 text-amber-300 border-amber-400/50",
+      accentBorder: "border-amber-200/50 group-hover:border-emerald-500",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(30,107,56,0.22)]"
+    },
+    {
+      title: "Philippine Coast Guard (PCG)",
+      subTitle: "Marine Environmental Protection Command",
+      role: "Maritime safety enforcement, prevention of illegal fishing in municipal waters, vessel seaworthiness inspection, and marine pollution response.",
+      url: "https://coastguard.gov.ph",
+      domain: "coastguard.gov.ph",
+      tag: "Maritime Law Enforcement",
+      icon: Scale,
+      themeBg: "from-[#071626] via-[#0d2745] to-[#05111f]",
+      badgeBg: "bg-blue-950/90 text-orange-400 border-orange-500/50",
+      accentBorder: "border-blue-200/50 group-hover:border-orange-400",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(255,85,0,0.20)]"
     }
   ];
 
@@ -120,11 +170,11 @@ const Legal = () => {
               <span>Philippine Agricultural & Marine Jurisprudence</span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-extrabold font-heading text-kaani-dark tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
               Legal Guidance Hub
             </h1>
 
-            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Understand your rights under RA 8550/10654, navigate municipal permits, and ensure hassle-free regulatory compliance with interactive checklists.
             </p>
           </div>
@@ -229,35 +279,76 @@ const Legal = () => {
               {legalAgencies.map((agency, idx) => {
                 const Icon = agency.icon;
                 return (
-                  <Card
+                  <div
                     key={idx}
-                    className="rounded-3xl border border-slate-100 bg-white shadow-card hover:shadow-elevated transition-all p-6 flex flex-col justify-between group cursor-pointer"
+                    className={`rounded-3xl border border-slate-200 bg-white shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer ${agency.accentBorder} ${agency.hoverGlow}`}
                     onClick={() => window.open(agency.url, "_blank", "noopener,noreferrer")}
                   >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center">
-                          <Icon className="h-6 w-6" />
+                    {/* Official .gov.ph Browser Header */}
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 text-slate-300 text-xs font-mono border-b border-slate-800">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 inline-block animate-pulse"></span>
+                        <span className="text-slate-400">https://</span>
+                        <span className="text-white font-bold tracking-tight truncate">{agency.domain}</span>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] text-cyan-300 bg-cyan-950/90 px-2.5 py-0.5 rounded-full border border-cyan-800 shrink-0 font-medium">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>Official Portal</span>
+                      </span>
+                    </div>
+
+                    {/* Authentic Government Agency Banner */}
+                    <div className={`p-5 bg-gradient-to-r ${agency.themeBg} text-white flex items-center justify-between gap-4`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform shadow-inner">
+                          <Icon className="h-5 w-5" />
                         </div>
-                        <Badge variant="outline" className="text-[10px] font-bold uppercase border-purple-200 text-purple-800">
-                          {agency.tag}
-                        </Badge>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase font-black tracking-wider text-white">
+                              {agency.domain.replace("www.", "").toUpperCase()}
+                            </span>
+                            <Badge className={`text-[9px] py-0 px-1.5 uppercase font-bold ${agency.badgeBg}`}>
+                              {agency.tag}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-white/75 line-clamp-1 mt-0.5 font-medium">
+                            {agency.subTitle}
+                          </p>
+                        </div>
                       </div>
 
-                      <CardTitle className="text-lg font-bold font-heading text-slate-900 group-hover:text-purple-700 transition-colors">
-                        {agency.title}
-                      </CardTitle>
-
-                      <CardDescription className="text-sm text-muted-foreground leading-relaxed">
-                        {agency.role}
-                      </CardDescription>
+                      <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white/80 shrink-0">
+                        <ExternalLink className="h-4 w-4" />
+                      </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-purple-700 group-hover:underline">
-                      <span>Visit Official Portal</span>
-                      <ExternalLink className="h-4 w-4" />
+                    {/* Content Section */}
+                    <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <h3 className="text-lg md:text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors leading-snug">
+                          {agency.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {agency.role}
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <span>Statutory Scope: <strong className="text-slate-900">Official National & Municipal Jurisdiction</strong></span>
+                      </div>
                     </div>
-                  </Card>
+
+                    {/* Footer Action */}
+                    <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-kaani-primary transition-colors">
+                      <span className="flex items-center gap-1.5">
+                        <span>Open Agency Portal</span>
+                        <span className="text-slate-400 font-normal">({agency.domain})</span>
+                      </span>
+                      <ExternalLink className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -265,26 +356,25 @@ const Legal = () => {
         </div>
       </section>
 
-      {/* Legal Knowledge Quiz Challenge CTA */}
+      {/* Legal Assistance & Guidance CTA */}
       <section className="py-14 bg-gradient-section">
         <div className="container px-4">
-          <div className="max-w-4xl mx-auto rounded-3xl bg-gradient-to-r from-purple-900 to-indigo-900 text-white p-8 md:p-12 text-center space-y-4 shadow-elevated">
-            <Scale className="h-10 w-10 text-purple-300 mx-auto" />
+          <div className="max-w-4xl mx-auto rounded-3xl bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-8 md:p-12 text-center space-y-4 shadow-elevated">
+            <Scale className="h-10 w-10 text-emerald-300 mx-auto" />
             <h3 className="text-2xl md:text-3xl font-extrabold font-heading">
-              Test Your Philippine Fisheries Law Knowledge
+              Need Help Navigating Fisheries & Agricultural Policies?
             </h3>
-            <p className="text-sm md:text-base text-purple-100 max-w-lg mx-auto">
-              How well do you know RA 8550 municipal boundaries, prohibited gears, and ECC protocols? Play the quiz and see your rank!
+            <p className="text-sm md:text-base text-emerald-100 max-w-xl mx-auto leading-relaxed">
+              Access our curated learning modules and statutory guides for municipal waters, licensing protocols, and environmental compliance.
             </p>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 size="lg"
-                className="bg-white hover:bg-purple-50 text-purple-950 font-bold rounded-2xl px-8 py-6 shadow-md text-base"
+                className="bg-white hover:bg-emerald-50 text-emerald-950 font-bold rounded-2xl px-8 py-6 shadow-md text-base"
                 asChild
               >
-                <Link to="/quiz?start=true">
-                  <Sparkles className="h-4 w-4 mr-2 text-amber-500" />
-                  Take Fisheries Law Quiz
+                <Link to="/learning">
+                  Browse Educational Modules
                 </Link>
               </Button>
             </div>

@@ -58,7 +58,7 @@ const RoleSelection = () => {
             <Badge className="bg-emerald-100 text-kaani-primary border-emerald-200 font-bold uppercase tracking-wider text-xs">
               Personalized Experience
             </Badge>
-            <h1 className="text-3xl md:text-5xl font-extrabold font-heading text-kaani-dark">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">
               Choose How You Want to Learn
             </h1>
             <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">

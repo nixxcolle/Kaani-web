@@ -12,17 +12,29 @@ import {
   ChevronRight,
   ShieldCheck,
   Sprout,
-  Waves
+  Waves,
+  Store,
+  ShoppingBag,
+  MapPin,
+  Heart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import heroImage from "@/assets/hero-agriculture.jpg";
+import heroImage from "@/assets/images/Catbalogan.png";
 
 const Index = () => {
   const features = [
+    {
+      icon: Store,
+      title: "Kaani Market",
+      description: "Direct marketplace connecting local farmers and fisherfolk with consumers to promote and sell fresh harvests.",
+      href: "/market",
+      tag: "Direct Farm-to-Table",
+      color: "text-emerald-800 bg-emerald-100/80 border-emerald-300"
+    },
     {
       icon: BookOpen,
       title: "Learning Hub",
@@ -117,32 +129,44 @@ const Index = () => {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold font-heading tracking-tight text-white leading-tight drop-shadow-sm">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading tracking-tight text-white leading-tight drop-shadow-sm">
               Empowering Agriculture & Fisheries
             </h1>
 
             {/* Subtitle */}
-            <p className="text-base sm:text-lg md:text-xl text-emerald-50/95 font-normal max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
+            <p className="text-sm sm:text-base md:text-lg text-emerald-50/95 font-normal max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
               Simplifying laws, sharing practical guides, and connecting communities to maximize harvests and sustainable practices.
             </p>
 
-            {/* CTA Buttons - Start Learning is the primary focus */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-3">
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto bg-white hover:bg-emerald-50 text-emerald-950 hover:text-emerald-900 font-bold px-8 py-6 rounded-2xl shadow-elevated transition-all duration-200 hover:scale-105 hover:shadow-glow flex items-center justify-center gap-2 text-base group"
+                className="w-full sm:w-auto bg-[#0d533a] hover:bg-[#083a28] text-white font-bold px-6 py-5 rounded-2xl shadow-elevated transition-all duration-200 hover:scale-102 flex items-center justify-center gap-2 text-sm sm:text-base group ring-2 ring-emerald-400/40"
+                asChild
+              >
+                <Link to="/market">
+                  <Store className="h-4 w-4 text-emerald-300" />
+                  <span>Kaani Market</span>
+                  <ArrowRight className="h-4 w-4 text-emerald-300 transition-transform duration-200 group-hover:translate-x-1" />
+                </Link>
+              </Button>
+
+              <Button 
+                size="lg" 
+                className="w-full sm:w-auto bg-white hover:bg-emerald-50 text-emerald-950 font-bold px-6 py-5 rounded-2xl shadow-elevated transition-all duration-200 hover:scale-102 flex items-center justify-center gap-2 text-sm sm:text-base group"
                 asChild
               >
                 <Link to="/learning">
-                  <span>Start Learning</span>
-                  <ArrowRight className="h-5 w-5 text-emerald-800 transition-transform duration-200 group-hover:translate-x-1" />
+                  <span>Learning Hub</span>
+                  <ChevronRight className="h-4 w-4 text-emerald-700" />
                 </Link>
               </Button>
 
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="w-full sm:w-auto border-2 border-white/80 bg-black/25 hover:bg-white hover:text-emerald-950 text-white font-bold px-8 py-6 rounded-2xl backdrop-blur-md transition-all duration-200 text-base"
+                className="w-full sm:w-auto border-2 border-white/80 bg-black/25 hover:bg-white hover:text-emerald-950 text-white font-bold px-6 py-5 rounded-2xl backdrop-blur-md transition-all duration-200 text-sm sm:text-base"
                 asChild
               >
                 <Link to="/legal">
@@ -187,10 +211,10 @@ const Index = () => {
             <span className="text-xs uppercase font-extrabold tracking-wider text-kaani-primary bg-emerald-100/80 px-3.5 py-1.5 rounded-full border border-emerald-200">
               Transforming Challenges into Opportunities
             </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">
+            <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
               Addressing Critical Challenges
             </h2>
-            <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
               We tackle the complex issues facing agriculture and fisheries communities through accessible education and practical solutions.
             </p>
           </div>
@@ -204,24 +228,24 @@ const Index = () => {
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
                   Current Hurdles
                 </div>
-                <CardTitle className="text-2xl font-bold font-heading text-slate-900">
+                <CardTitle className="text-xl sm:text-2xl font-bold font-heading text-slate-900">
                   The Problems We Solve
                 </CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
+                <CardDescription className="text-xs sm:text-sm text-muted-foreground">
                   Key barriers identified by agricultural and coastal stakeholders.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="px-6 sm:px-8 pb-8 space-y-5 flex-1">
+              <CardContent className="px-6 sm:px-8 pb-8 space-y-4 flex-1">
                 {problems.map((prob, idx) => {
                   const Icon = prob.icon;
                   return (
-                    <div key={idx} className="flex items-start gap-4 p-3.5 rounded-2xl bg-rose-50/40 border border-rose-100/60">
+                    <div key={idx} className="flex items-start gap-3.5 p-3 rounded-2xl bg-rose-50/40 border border-rose-100/60">
                       <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <h4 className="font-bold text-slate-900 text-sm sm:text-base">{prob.title}</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           {prob.description}
                         </p>
                       </div>
@@ -239,22 +263,22 @@ const Index = () => {
                   <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
                   Our Approach
                 </div>
-                <CardTitle className="text-2xl font-bold font-heading text-slate-900">
+                <CardTitle className="text-xl sm:text-2xl font-bold font-heading text-slate-900">
                   Our Solution
                 </CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
+                <CardDescription className="text-xs sm:text-sm text-muted-foreground">
                   Actionable, open-access education tailored for field and coastal use.
                 </CardDescription>
               </CardHeader>
               <CardContent className="px-6 sm:px-8 pb-8 flex-1 flex flex-col justify-between space-y-4">
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {benefits.map((benefit, index) => (
                     <div 
                       key={index} 
-                      className="flex items-center gap-3 p-2.5 rounded-xl bg-white border border-emerald-100/80 shadow-xs"
+                      className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-emerald-100/80 shadow-xs"
                     >
-                      <div className="w-6 h-6 rounded-lg bg-emerald-100 text-kaani-primary flex items-center justify-center shrink-0">
-                        <CheckCircle className="h-4 w-4 text-emerald-700" />
+                      <div className="w-5 h-5 rounded-md bg-emerald-100 text-kaani-primary flex items-center justify-center shrink-0">
+                        <CheckCircle className="h-3.5 w-3.5 text-emerald-700" />
                       </div>
                       <p className="text-xs sm:text-sm font-medium text-slate-800 leading-snug">{benefit}</p>
                     </div>
@@ -263,7 +287,7 @@ const Index = () => {
 
                 <div className="pt-2">
                   <Button 
-                    className="w-full bg-kaani-primary hover:bg-kaani-dark text-white font-bold py-5 rounded-xl shadow-xs"
+                    className="w-full bg-kaani-primary hover:bg-kaani-dark text-white font-bold py-4 rounded-xl shadow-xs"
                     asChild
                   >
                     <Link to="/learning" className="flex items-center justify-center gap-2 text-sm">
@@ -278,6 +302,179 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Kaani Market Showcase Section */}
+      <section className="py-16 md:py-20 bg-gradient-to-b from-white to-[#f0fdf4] border-t border-emerald-100">
+        <div className="container px-4">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 max-w-7xl mx-auto">
+            <div className="space-y-2">
+              <span className="text-xs uppercase font-extrabold tracking-wider text-emerald-800 bg-emerald-100 px-3.5 py-1.5 rounded-full border border-emerald-200 inline-flex items-center gap-1.5">
+                <Store className="h-3.5 w-3.5 text-emerald-700" />
+                Empowering Local Producers
+              </span>
+              <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-emerald-950">
+                Fresh from Farms and Waters
+              </h2>
+              <p className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed">
+                Connect directly with hardworking farmers and fisherfolk. Buy freshly harvested produce, sustainably caught seafood, and artisanal local goods.
+              </p>
+            </div>
+
+            <Button
+              className="bg-[#0d533a] hover:bg-[#083a28] text-white font-bold rounded-xl px-5 py-4 shadow-xs shrink-0 self-start md:self-auto text-sm"
+              asChild
+            >
+              <Link to="/market" className="flex items-center gap-2">
+                <span>Visit Kaani Market</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* 4 Preview Cards Matching Reference */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-7xl mx-auto">
+            {/* Preview Card 1: Fresh Vegetables */}
+            <Link to="/market?cat=Vegetables+%26+Fruits" className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col">
+              <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50/50">
+                <img 
+                  src="/assets/images/market/vegetables-bundle.jpg" 
+                  alt="Fresh Vegetables Bundle" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/assets/images/market/vegetables-bundle.jpg";
+                  }}
+                />
+                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-xs">
+                  Farm Product
+                </span>
+                <span className="absolute bottom-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-950/75 text-emerald-200">
+                  95% Producer Net
+                </span>
+              </div>
+              <div className="p-3.5 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
+                    Fresh Vegetables Bundle
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-emerald-600" />
+                    San Isidro, Sorsogon
+                  </p>
+                </div>
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2.5">
+                  <span className="text-sm font-black text-emerald-800">&#8369; 50.00 <span className="text-[11px] font-semibold text-slate-500">/ kg</span></span>
+                  <span className="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Preview Card 2: Fresh Tilapia */}
+            <Link to="/market?cat=Fish+%26+Seafood" className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col">
+              <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50/50">
+                <img 
+                  src="/assets/images/market/fresh-tilapia.jpg" 
+                  alt="Fresh Tilapia" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/assets/images/market/vegetables-bundle.jpg";
+                  }}
+                />
+                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-600 text-white shadow-xs">
+                  Fishery Product
+                </span>
+                <span className="absolute bottom-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-950/75 text-emerald-200">
+                  95% Producer Net
+                </span>
+              </div>
+              <div className="p-3.5 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
+                    Fresh Tilapia
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-emerald-600" />
+                    Pilar, Sorsogon
+                  </p>
+                </div>
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2.5">
+                  <span className="text-sm font-black text-emerald-800">&#8369; 120.00 <span className="text-[11px] font-semibold text-slate-500">/ kg</span></span>
+                  <span className="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Preview Card 3: Saba Banana */}
+            <Link to="/market?cat=Vegetables+%26+Fruits" className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col">
+              <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50/50">
+                <img 
+                  src="/assets/images/market/saba-banana.jpg" 
+                  alt="Saba Banana" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/assets/images/market/vegetables-bundle.jpg";
+                  }}
+                />
+                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-xs">
+                  Farm Product
+                </span>
+                <span className="absolute bottom-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-950/75 text-emerald-200">
+                  95% Producer Net
+                </span>
+              </div>
+              <div className="p-3.5 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
+                    Saba Banana
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-emerald-600" />
+                    Donsol, Sorsogon
+                  </p>
+                </div>
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2.5">
+                  <span className="text-sm font-black text-emerald-800">&#8369; 40.00 <span className="text-[11px] font-semibold text-slate-500">/ kg</span></span>
+                  <span className="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Preview Card 4: Dried Tuyo */}
+            <Link to="/market?cat=Fish+%26+Seafood" className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col">
+              <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50/50">
+                <img 
+                  src="/assets/images/market/dried-tuyo.jpg" 
+                  alt="Dried Tuyo" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/assets/images/market/vegetables-bundle.jpg";
+                  }}
+                />
+                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-600 text-white shadow-xs">
+                  Fishery Product
+                </span>
+                <span className="absolute bottom-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-950/75 text-emerald-200">
+                  95% Producer Net
+                </span>
+              </div>
+              <div className="p-3.5 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
+                    Dried Tuyo
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-emerald-600" />
+                    Matnog, Sorsogon
+                  </p>
+                </div>
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2.5">
+                  <span className="text-sm font-black text-emerald-800">&#8369; 250.00 <span className="text-[11px] font-semibold text-slate-500">/ pack</span></span>
+                  <span className="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Comprehensive Platform Features */}
       <section className="py-16 md:py-24 bg-white border-t border-emerald-100/70">
         <div className="container px-4">
@@ -285,15 +482,15 @@ const Index = () => {
             <span className="text-xs uppercase font-extrabold tracking-wider text-kaani-primary bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200">
               Core Platform Pillars
             </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">
+            <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
               Comprehensive Platform Features
             </h2>
-            <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
               Everything you need to succeed in modern agriculture and fisheries, all in one place.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (

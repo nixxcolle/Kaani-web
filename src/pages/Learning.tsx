@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { 
   BookOpen, 
@@ -22,73 +22,70 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { DEFAULT_LEARNING_MODULES, LearningModule } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
 
 const Learning = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [modules, setModules] = useState<LearningModule[]>(DEFAULT_LEARNING_MODULES);
 
-  const originalModules = [
-    {
-      id: "mod-crop-1",
-      title: "Sustainable Farming Basics",
-      description: "Learn fundamental principles of sustainable agriculture, organic soil management, and composting.",
-      duration: "2 hours",
-      lessons: 8,
-      difficulty: "Beginner",
-      category: "Agriculture",
-      categoryParam: "Sustainable Crops"
-    },
-    {
-      id: "mod-fish-1",
-      title: "Aquaculture Fundamentals",
-      description: "Introduction to fish farming techniques, pond stocking density, and water quality management.",
-      duration: "3 hours",
-      lessons: 12,
-      difficulty: "Beginner",
-      category: "Fisheries",
-      categoryParam: "Fisheries & Marine"
-    },
-    {
-      id: "mod-crop-2",
-      title: "Integrated Pest Management",
-      description: "Eco-friendly biological approaches to pest control, crop protection, and natural companion planting.",
-      duration: "2.5 hours",
-      lessons: 10,
-      difficulty: "Intermediate",
-      category: "Agriculture",
-      categoryParam: "Sustainable Crops"
-    },
-    {
-      id: "mod-fish-2",
-      title: "Marine Conservation & Sanctuaries",
-      description: "Understanding coastal ecosystems, marine protected areas (MPAs), and sustainable municipal fishing.",
-      duration: "2 hours",
-      lessons: 9,
-      difficulty: "Intermediate",
-      category: "Fisheries",
-      categoryParam: "Fisheries & Marine"
-    },
-    {
-      id: "mod-tech-1",
-      title: "Modern Irrigation Systems",
-      description: "Smart solar drip irrigation technologies, gravity filtration, and efficient water conservation methods.",
-      duration: "1.5 hours",
-      lessons: 6,
-      difficulty: "Advanced",
-      category: "Technology",
-      categoryParam: "Agri-Tech"
-    },
-    {
-      id: "mod-bus-1",
-      title: "Agricultural Economics & Cooperatives",
-      description: "Market pricing strategies, cooperative organization, value-chain optimization, and farm bookkeeping.",
-      duration: "3 hours",
-      lessons: 15,
-      difficulty: "Advanced",
-      category: "Business",
-      categoryParam: "Policy & Law"
-    }
-  ];
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("modules")
+          .select("id, title, description, file_data, file_name")
+          .order("created_at", { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          // Keep only modules with actual file data or file name
+          const valid = data.filter((m: any) => 
+            (m.file_data && m.file_data.trim().length > 0) || 
+            (m.file_name && m.file_name.trim().length > 0)
+          );
+
+          const list: LearningModule[] = [...DEFAULT_LEARNING_MODULES];
+          valid.forEach((mod: any) => {
+            const idx = list.findIndex(e => e.id === mod.id);
+            if (idx >= 0) {
+              if (mod.file_data) list[idx].file_data = mod.file_data;
+              if (mod.file_name) list[idx].file_name = mod.file_name;
+              if (mod.description) list[idx].description = mod.description;
+            } else {
+              list.push({
+                id: mod.id,
+                title: mod.title,
+                category: "Fisheries & Marine",
+                description: mod.description || "Comprehensive guide on fish anatomy, biological systems, and adaptations.",
+                readTimeMinutes: 15,
+                difficulty: "Beginner",
+                objectives: [
+                  "Understand fundamental biological and environmental principles",
+                  "Learn anatomical structures and physiological functions",
+                  "Implement sustainable aquatic resource management"
+                ],
+                contentSections: [
+                  {
+                    heading: "Overview & Objectives",
+                    body: mod.description || "Detailed educational material on fish physiology and morphology.",
+                    keyTakeaway: "Healthy physiological systems are the foundation for thriving fisheries and sustainable aquaculture."
+                  }
+                ],
+                file_name: mod.file_name || "physio-LP1 (1) (2).pdf",
+                file_data: mod.file_data
+              });
+            }
+          });
+          setModules(list);
+        }
+      } catch (e) {
+        console.warn("Using offline learning modules pool:", e);
+      }
+    };
+
+    fetchModules();
+  }, []);
 
   const features = [
     {
@@ -121,7 +118,7 @@ const Learning = () => {
       color: "bg-sky-50/70 border-sky-200/80 text-sky-900",
       accent: "text-sky-600",
       topics: [
-        "Recirculating Aquaculture Systems (RAS) setups",
+        "Fish physiological adaptations and locomotion",
         "Water quality parameters: DO, Ammonia, and pH",
         "Philippine Fisheries Code (RA 8550/10654) compliance",
         "Mangrove preservation and nursery reef protection"
@@ -161,15 +158,20 @@ const Learning = () => {
     }
   ];
 
-  const categories = ["All", "Agriculture", "Fisheries", "Technology", "Business"];
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(modules.map(m => m.category)));
+    return ["All", ...cats];
+  }, [modules]);
 
-  const filteredModules = originalModules.filter((module) => {
-    const matchesSearch = 
-      module.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      module.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || module.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredModules = useMemo(() => {
+    return modules.filter((module) => {
+      const matchesSearch = 
+        module.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        module.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === "All" || module.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [modules, searchQuery, selectedCategory]);
 
   const getDifficultyBadge = (difficulty: string) => {
     switch (difficulty) {
@@ -197,11 +199,11 @@ const Learning = () => {
               <span>Comprehensive Knowledge Center</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold font-heading text-kaani-dark tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
               Learning Hub
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Master agriculture and fisheries through practical modules, technical blueprints, and community-driven learning resources.
             </p>
             
@@ -280,7 +282,7 @@ const Learning = () => {
               <Layers className="h-3.5 w-3.5" />
               <span>Modular Curriculum</span>
             </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">
+            <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
               Featured Learning Modules
             </h2>
             <p className="text-sm md:text-base text-muted-foreground">
@@ -330,11 +332,11 @@ const Learning = () => {
                     <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-slate-100 pt-3">
                       <span className="flex items-center gap-1">
                         <BookOpen className="h-3.5 w-3.5 text-kaani-primary" />
-                        {module.lessons} lessons
+                        {module.file_name ? "Official PDF Guide" : "Interactive Guide"}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5 text-kaani-primary" />
-                        {module.duration}
+                        {module.readTimeMinutes} min read
                       </span>
                     </div>
 
@@ -342,7 +344,7 @@ const Learning = () => {
                       className="w-full bg-kaani-primary hover:bg-kaani-dark text-white font-bold py-5 rounded-xl shadow-xs transition-all group-hover:shadow-md"
                       asChild
                     >
-                      <Link to={`/modules?category=${encodeURIComponent(module.categoryParam)}`}>
+                      <Link to="/modules">
                         <span>Start Learning</span>
                         <ChevronRight className="h-4 w-4 ml-1.5 transition-transform group-hover:translate-x-1" />
                       </Link>

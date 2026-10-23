@@ -74,14 +74,14 @@ const Terms = () => {
                 <div className="pt-6">
                   <h2 className="text-xl font-bold font-heading text-slate-900 mb-2">4. User Account & Community Conduct</h2>
                   <p className="text-muted-foreground">
-                    Learners participating in the Quiz Arena and Leaderboard agree to maintain genuine representation, avoid automated scripting or exploits, and foster a respectful environment for peer learning.
+                    Learners participating in the Knowledge Recall Quiz agree to maintain genuine representation, avoid automated scripting or exploits, and foster an honest, respectful environment for peer learning.
                   </p>
                 </div>
 
                 <div className="pt-6">
                   <h2 className="text-xl font-bold font-heading text-slate-900 mb-2">5. Privacy & Data Handling</h2>
                   <p className="text-muted-foreground">
-                    We value learner privacy. Personal details such as email addresses are utilized strictly for account session verification and leaderboard scores. We never sell or distribute user records to third-party commercial marketing entities.
+                    We value learner privacy. Personal details such as email addresses are utilized strictly for account session verification, security, and personal learning progress. We never sell or distribute user records to third-party commercial marketing entities.
                   </p>
                 </div>
               </div>

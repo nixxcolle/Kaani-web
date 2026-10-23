@@ -41,7 +41,14 @@ const Sustainability = () => {
       adoption: "Growing",
       icon: Fish,
       metrics: "90% less water consumed",
-      url: "https://farmonaut.com/blogs/sustainable-fish-farming-technology-7-eco-innovations"
+      url: "https://farmonaut.com/blogs/sustainable-fish-farming-technology-7-eco-innovations",
+      brandName: "Farmonaut",
+      domain: "farmonaut.com",
+      brandTagline: "Satellite & AI-Powered Agritech",
+      brandTheme: "from-[#08301c] via-[#0f4a2d] to-[#0a3520]",
+      badgeBg: "bg-emerald-950/80 text-emerald-400 border-emerald-700/60",
+      accentBorder: "border-emerald-300/40 group-hover:border-emerald-500",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(16,185,129,0.18)]"
     },
     {
       title: "Solar-Powered Precision Drip Irrigation",
@@ -51,7 +58,14 @@ const Sustainability = () => {
       adoption: "Widespread",
       icon: Droplet,
       metrics: "60% water savings & 0 emissions",
-      url: "https://masschallenge.org/articles/agriculture-innovation/"
+      url: "https://masschallenge.org/articles/agriculture-innovation/",
+      brandName: "MassChallenge",
+      domain: "masschallenge.org",
+      brandTagline: "Global Zero-Equity Startup Accelerator",
+      brandTheme: "from-[#1b1c20] via-[#24252a] to-[#151619] border-l-4 border-l-[#ED1C24]",
+      badgeBg: "bg-neutral-950/90 text-rose-400 border-rose-800/60",
+      accentBorder: "border-rose-200/50 group-hover:border-rose-400",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(237,28,36,0.18)]"
     },
     {
       title: "African Nightcrawler Vermicomposting",
@@ -61,7 +75,14 @@ const Sustainability = () => {
       adoption: "Widespread",
       icon: Recycle,
       metrics: "5x more bioavailable nitrogen",
-      url: "https://www.wastex.io/post/what-is-vertical-farming"
+      url: "https://www.wastex.io/post/what-is-vertical-farming",
+      brandName: "WasteX",
+      domain: "wastex.io",
+      brandTagline: "Climate-Tech & Circular Biochar Solutions",
+      brandTheme: "from-[#0a151b] via-[#11242d] to-[#09161d]",
+      badgeBg: "bg-slate-950/90 text-teal-300 border-teal-700/60",
+      accentBorder: "border-teal-200/50 group-hover:border-teal-400",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(0,229,153,0.18)]"
     },
     {
       title: "Controlled-Environment Vertical Hydroponics",
@@ -71,7 +92,14 @@ const Sustainability = () => {
       adoption: "Emerging",
       icon: Leaf,
       metrics: "10x yield per square meter",
-      url: "https://www.wastex.io/post/what-is-vertical-farming"
+      url: "https://www.wastex.io/post/what-is-vertical-farming",
+      brandName: "WasteX Insights",
+      domain: "wastex.io",
+      brandTagline: "High-Efficiency Controlled Agriculture",
+      brandTheme: "from-[#0a151b] via-[#11242d] to-[#09161d]",
+      badgeBg: "bg-slate-950/90 text-teal-300 border-teal-700/60",
+      accentBorder: "border-teal-200/50 group-hover:border-teal-400",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(0,229,153,0.18)]"
     }
   ];
 
@@ -82,7 +110,13 @@ const Sustainability = () => {
       description: "Pioneering zero-waste aquaculture that captures shrimp metabolic nutrients to fertilize saline-tolerant greens.",
       url: "https://oceans-and-fisheries.ec.europa.eu/news/agriloops-sustainable-shrimp-and-vegetables-thanks-blueinvest-2025-01-31_en",
       date: "2025",
-      tag: "Blue Economy"
+      tag: "Blue Economy",
+      brandName: "European Commission • BlueInvest",
+      domain: "ec.europa.eu",
+      themeBg: "from-[#002B80] via-[#0039A6] to-[#082260]",
+      badgeBg: "bg-blue-950/90 text-amber-300 border-amber-400/50",
+      accentBorder: "border-blue-200 group-hover:border-blue-500",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(0,51,153,0.22)]"
     },
     {
       title: "Evangeline's Journey: Sustainable Agriculture in the Philippines",
@@ -90,7 +124,13 @@ const Sustainability = () => {
       description: "How climate-smart agricultural training and organic composting empowered rural women smallholders across Region VIII.",
       url: "https://www.meda.org/news/success-stories/evangelines-journey-environmental-innovation-in-the-philippines-transforms-opportunities-for-women-farmers/",
       date: "2024",
-      tag: "Community Impact"
+      tag: "Community Impact",
+      brandName: "MEDA Global",
+      domain: "meda.org",
+      themeBg: "from-[#004D59] via-[#006E80] to-[#003C45]",
+      badgeBg: "bg-teal-950/90 text-orange-300 border-orange-400/50",
+      accentBorder: "border-teal-200 group-hover:border-orange-400",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(255,121,0,0.20)]"
     },
     {
       title: "Fostering Innovation in High-Efficiency Agriculture",
@@ -98,7 +138,13 @@ const Sustainability = () => {
       description: "Startups driving technology adoption for off-grid precision farming and clean river basin protection.",
       url: "https://www.undp.org/egypt/stories/fostering-innovation-egypts-agriculture-success-stories-startups-driving-change",
       date: "2024",
-      tag: "Tech Transfer"
+      tag: "Tech Transfer",
+      brandName: "United Nations (UNDP)",
+      domain: "undp.org",
+      themeBg: "from-[#024B80] via-[#0468B1] to-[#01355C]",
+      badgeBg: "bg-sky-950/90 text-sky-300 border-sky-400/50",
+      accentBorder: "border-sky-200 group-hover:border-sky-500",
+      hoverGlow: "group-hover:shadow-[0_12px_30px_rgba(4,104,177,0.22)]"
     }
   ];
 
@@ -121,11 +167,11 @@ const Sustainability = () => {
               <span>Climate-Smart Agriculture & Fisheries</span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-extrabold font-heading text-kaani-dark tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
               Sustainability Hub
             </h1>
 
-            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Explore eco-friendly aquaculture, circular soil regeneration, and zero-emission irrigation solutions reshaping livelihoods.
             </p>
           </div>
@@ -257,45 +303,76 @@ const Sustainability = () => {
               {filteredInnovations.map((item, idx) => {
                 const Icon = item.icon;
                 return (
-                  <Card
+                  <div
                     key={idx}
-                    className="rounded-3xl border border-slate-100 bg-white shadow-card hover:shadow-elevated transition-all p-6 flex flex-col justify-between group cursor-pointer"
+                    className={`rounded-3xl border border-slate-200 bg-white shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer ${item.accentBorder} ${item.hoverGlow}`}
                     onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
                   >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-kaani-primary flex items-center justify-center">
-                          <Icon className="h-6 w-6" />
+                    {/* Real Domain & Browser Header Bar */}
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 text-slate-300 text-xs font-mono border-b border-slate-800">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                        <span className="text-slate-400">https://</span>
+                        <span className="text-white font-bold tracking-tight truncate">{item.domain}</span>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/90 px-2.5 py-0.5 rounded-full border border-emerald-800 shrink-0 font-medium">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>External Source</span>
+                      </span>
+                    </div>
+
+                    {/* Authentic Brand Header Banner */}
+                    <div className={`p-5 bg-gradient-to-r ${item.brandTheme} text-white flex items-center justify-between gap-4`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                          <Icon className="h-5 w-5" />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] uppercase font-bold border-emerald-200 text-emerald-800">
-                            {item.category}
-                          </Badge>
-                          <Badge className="text-[10px] bg-emerald-600 text-white">
-                            {item.impact} Impact
-                          </Badge>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase font-black tracking-wider text-white">
+                              {item.brandName}
+                            </span>
+                            <Badge className={`text-[9px] py-0 px-1.5 uppercase font-bold ${item.badgeBg}`}>
+                              {item.category}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-white/70 line-clamp-1 mt-0.5 font-medium">
+                            {item.brandTagline}
+                          </p>
                         </div>
                       </div>
 
-                      <CardTitle className="text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors">
-                        {item.title}
-                      </CardTitle>
+                      <Badge className="text-[10px] bg-white text-slate-900 hover:bg-white font-bold shrink-0">
+                        {item.impact} Impact
+                      </Badge>
+                    </div>
 
-                      <CardDescription className="text-sm text-muted-foreground leading-relaxed">
-                        {item.description}
-                      </CardDescription>
+                    {/* Card Content */}
+                    <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <h3 className="text-lg md:text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors leading-snug">
+                          {item.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {item.description}
+                        </p>
+                      </div>
 
-                      <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 text-xs font-semibold text-emerald-900 flex items-center gap-2">
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <span>Key Metric: {item.metrics}</span>
+                        <span>Metric: <strong className="text-emerald-800">{item.metrics}</strong></span>
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-kaani-primary group-hover:underline">
-                      <span>Explore Technical Guide</span>
-                      <ExternalLink className="h-4 w-4" />
+                    {/* Footer Action */}
+                    <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-kaani-primary transition-colors">
+                      <span className="flex items-center gap-1.5">
+                        <span>Read full article on</span>
+                        <span className="font-extrabold text-slate-900 group-hover:text-kaani-primary">{item.brandName}</span>
+                      </span>
+                      <ExternalLink className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
                     </div>
-                  </Card>
+                  </div>
                 );
               })}
             </div>
@@ -318,57 +395,71 @@ const Sustainability = () => {
 
             <div className="grid md:grid-cols-3 gap-6">
               {successStories.map((story, idx) => (
-                <Card
+                <div
                   key={idx}
-                  className="rounded-3xl border border-slate-100 bg-white shadow-card hover:shadow-elevated transition-all p-6 flex flex-col justify-between group cursor-pointer"
+                  className={`rounded-3xl border border-slate-200 bg-white shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer ${story.accentBorder} ${story.hoverGlow}`}
                   onClick={() => window.open(story.url, "_blank", "noopener,noreferrer")}
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        {story.tag}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {story.date}
-                      </span>
-                    </div>
-
-                    <CardTitle className="text-base font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors leading-snug">
-                      {story.title}
-                    </CardTitle>
-
-                    <CardDescription className="text-xs text-muted-foreground leading-relaxed">
-                      {story.description}
-                    </CardDescription>
+                  {/* Domain Bar */}
+                  <div className="flex items-center justify-between px-3.5 py-2 bg-slate-900 text-slate-300 text-[11px] font-mono border-b border-slate-800">
+                    <span className="text-white font-bold truncate">https://{story.domain}</span>
+                    <ExternalLink className="h-3 w-3 text-slate-400 shrink-0" />
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-kaani-primary">
-                    <span>Read Publication</span>
+                  {/* Brand Header Banner */}
+                  <div className={`p-4 bg-gradient-to-r ${story.themeBg} text-white space-y-1`}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-white">
+                        {story.brandName}
+                      </span>
+                      <Badge className={`text-[9px] py-0 px-1.5 uppercase font-bold ${story.badgeBg}`}>
+                        {story.tag}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-white/70 flex items-center gap-1 font-medium">
+                      <Calendar className="h-3 w-3" /> Published {story.date} • {story.location}
+                    </p>
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="p-5 space-y-2 flex-1">
+                    <h3 className="text-base font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors leading-snug">
+                      {story.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {story.description}
+                    </p>
+                  </div>
+
+                  {/* Action Link Footer */}
+                  <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-kaani-primary transition-colors">
+                    <span>Open Case Study ↗</span>
                     <ExternalLink className="h-3.5 w-3.5" />
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
 
-            {/* Quiz Banner CTA */}
-            <div className="p-8 rounded-3xl bg-gradient-hero text-white text-center space-y-4 shadow-elevated">
-              <Sparkles className="h-8 w-8 text-amber-300 mx-auto" />
-              <h3 className="text-2xl font-bold font-heading">
-                How Much Did You Learn About Sustainable Practices?
+            {/* Sustainability Action CTA */}
+            <div className="p-8 md:p-10 rounded-3xl bg-gradient-hero text-white text-center space-y-4 shadow-elevated">
+              <Leaf className="h-8 w-8 text-emerald-300 mx-auto" />
+              <h3 className="text-2xl md:text-3xl font-bold font-heading">
+                Adopt Climate-Smart Practices in Your Community
               </h3>
-              <p className="text-sm text-emerald-50/90 max-w-lg mx-auto">
-                Test your understanding in the Quiz Arena. Select the "Sustainable Agriculture" category to earn points!
+              <p className="text-sm md:text-base text-emerald-50/90 max-w-xl mx-auto leading-relaxed">
+                Explore our comprehensive training materials and field-tested ecological practices to maximize resilience and yield.
               </p>
-              <Button 
-                size="lg" 
-                className="bg-white hover:bg-emerald-50 text-kaani-primary font-bold rounded-2xl px-6 py-6 shadow-md"
-                asChild
-              >
-                <Link to="/quiz?start=true">
-                  Take Sustainability Quiz
-                </Link>
-              </Button>
+              <div className="pt-2">
+                <Button 
+                  size="lg" 
+                  className="bg-white hover:bg-emerald-50 text-kaani-primary font-bold rounded-2xl px-8 py-6 shadow-md text-sm md:text-base"
+                  asChild
+                >
+                  <Link to="/learning">
+                    Explore Learning Resources <ArrowRight className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -76,6 +76,8 @@ export default {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         heading: ["var(--font-heading)", "system-ui", "sans-serif"],
+        script: ["Caveat", "cursive"],
+        handwriting: ["Kalam", "cursive"],
       },
       borderRadius: {
         lg: "var(--radius)",

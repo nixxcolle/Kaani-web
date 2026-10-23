@@ -3,16 +3,17 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AnimatedBackground from "@/components/AnimatedBackground";
 import Index from "./pages/Index";
 import Learning from "./pages/Learning";
 import Quiz from "./pages/Quiz";
-import Leaderboard from "./pages/Leaderboard";
 import ModuleSelection from "./pages/ModuleSelection";
 import RoleSelection from "./pages/RoleSelection";
 import Auth from "./pages/Auth";
 import Sustainability from "./pages/Sustainability";
 import Legal from "./pages/Legal";
 import Terms from "./pages/Terms";
+import Market from "./pages/Market";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,11 +24,12 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <AnimatedBackground />
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/market" element={<Market />} />
           <Route path="/learning" element={<Learning />} />
           <Route path="/quiz" element={<Quiz />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/modules" element={<ModuleSelection />} />
           <Route path="/role-selection" element={<RoleSelection />} />
           <Route path="/auth" element={<Auth />} />

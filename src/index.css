@@ -154,6 +154,46 @@
     radial-gradient(at 80% 80%, rgba(245, 158, 11, 0.15) 0px, transparent 40%);
 }
 
+/* Animated background elements (subtle, non-distracting) */
+.leaf {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2310b981"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>') no-repeat center/contain;
+  animation: leaf-fall 18s linear infinite;
+  opacity: 0.25;
+}
+
+@keyframes leaf-fall {
+  0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+  15% { opacity: 0.25; }
+  85% { opacity: 0.25; }
+  100% { transform: translateY(110vh) translateX(25vw) rotate(360deg); opacity: 0; }
+}
+
+.bubble {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.35) 0%, rgba(255, 255, 255, 0.1) 70%);
+  border-radius: 50%;
+  animation: bubble-rise 12s ease-out infinite;
+  opacity: 0.3;
+}
+
+@keyframes bubble-rise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0.1; }
+  50% { opacity: 0.35; }
+  100% { transform: translateY(-110vh) scale(1.1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaf, .bubble {
+    animation: none !important;
+  }
+}
+
+
 .card-shine {
   position: relative;
   overflow: hidden;

@@ -52,7 +52,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
               Welcome to KaAni Learning
             </CardTitle>
             <CardDescription className="text-sm mt-2 text-muted-foreground leading-relaxed">
-              Sign in to keep your high scores on the community leaderboard, or continue as a guest for instant access!
+              Sign in to save your knowledge recall progress and module reviews, or continue as a guest for instant access!
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 pb-8 px-6">

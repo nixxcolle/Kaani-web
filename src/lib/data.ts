@@ -30,345 +30,280 @@ export interface LearningModule {
   file_data: string | null;
 }
 
-export interface LeaderboardRecord {
-  user_id: string;
-  user_name: string;
-  total_xp: number;
-  best_score: number;
-  quiz_count: number;
-  avatar_seed?: string;
-  badge?: string;
-  rank?: number;
+export interface QuizHistoryRecord {
+  id: string;
+  score: number;
+  total_questions: number;
+  correct_answers: number;
+  date: string;
+  user_id?: string;
 }
 
-// Comprehensive Bank of Curated Agriculture & Fisheries Questions
+// Curated comprehensive questions derived directly from the provided learning module:
+// "Unit 1: INTRODUCTION TO FISH PHYSIOLOGY" (Samar State University College of Fisheries)
 export const DEFAULT_QUIZ_QUESTIONS: QuizQuestion[] = [
   {
-    id: "q-1",
-    category: "Aquaculture & Marine Life",
+    id: "q-physio-1",
+    category: "Fisheries & Marine",
     difficulty: "Easy",
-    question: "What is the primary ecological benefit of cultivating mangrove forests along coastal aquaculture zones?",
-    choice_a: "They increase water salinity to toxic levels",
-    choice_b: "They serve as critical marine fish nurseries and natural storm surge barriers",
-    choice_c: "They eliminate the need for any water circulation in fish ponds",
-    choice_d: "They attract commercial deep-sea trawlers to nearshore waters",
-    correct_answer: "B",
-    explanation: "Mangroves provide vital breeding, nursery, and feeding grounds for up to 75% of commercial tropical fish species, while acting as physical barriers that attenuate storm surge waves by up to 66%.",
-    fun_fact: "A single hectare of healthy mangrove forest can produce over 1,000 kg of marine life harvest annually.",
-    image_url: null,
-  },
-  {
-    id: "q-2",
-    category: "Sustainable Agriculture",
-    difficulty: "Easy",
-    question: "Which of the following organic soil amendments replenishes vital nitrogen while boosting microbial diversity?",
-    choice_a: "Untreated plastic mulch",
-    choice_b: "Vermicompost (worm castings) and legume cover crops",
-    choice_c: "Concentrated synthetic sulfuric acid",
-    choice_d: "Unleached high-salinity seawater",
-    correct_answer: "B",
-    explanation: "Vermicompost is rich in beneficial microbes, humic acids, and bioavailable nitrogen, phosphorus, and potassium, while nitrogen-fixing legumes draw atmospheric nitrogen into root nodules.",
-    fun_fact: "Earthworms can process their own body weight in organic waste every 24 hours!",
-    image_url: null,
-  },
-  {
-    id: "q-3",
-    category: "Agri & Fisheries Laws",
-    difficulty: "Medium",
-    question: "Under the Philippine Fisheries Code of 1998 (RA 8550 as amended by RA 10654), municipal waters generally extend up to how many kilometers from the coastline?",
-    choice_a: "5 kilometers",
-    choice_b: "10 kilometers",
-    choice_c: "15 kilometers",
-    choice_d: "25 kilometers",
-    correct_answer: "C",
-    explanation: "Under RA 8550/10654, municipal waters include marine waters up to 15 kilometers (approx. 8.1 nautical miles) from the coastline, reserved primarily for small-scale municipal fisherfolk.",
-    fun_fact: "Delineating municipal waters protects artisanal fishers from large commercial vessels encroaching on sensitive breeding bays.",
-    image_url: null,
-  },
-  {
-    id: "q-4",
-    category: "Agri-Tech & Innovations",
-    difficulty: "Medium",
-    question: "What is the main operating principle of a closed Recirculating Aquaculture System (RAS)?",
-    choice_a: "Constantly discharging dirty water directly into open rivers",
-    choice_b: "Filtering, oxygenating, and recycling 90-99% of culture water in a closed loop",
-    choice_c: "Feeding fish exclusively on synthetic microplastics",
-    choice_d: "Relying purely on unpredictable monsoon floodwaters",
-    correct_answer: "B",
-    explanation: "RAS uses mechanical and biological filtration (nitrification via biofilters) to remove solids and toxic ammonia, recycling virtually all water while maintaining sterile, optimal growing conditions.",
-    fun_fact: "RAS facilities can produce up to 50 times more fish biomass per square meter compared to conventional earthen ponds.",
-    image_url: null,
-  },
-  {
-    id: "q-5",
-    category: "Sustainable Agriculture",
-    difficulty: "Medium",
-    question: "Why is drip irrigation significantly more water-efficient than traditional flood furrow irrigation?",
-    choice_a: "It delivers low-pressure water directly to the plant root zone, minimizing evaporation",
-    choice_b: "It floods the entire field with standing water for weeks",
-    choice_c: "It only operates during heavy downpours",
-    choice_d: "It forces plants to grow without any moisture",
+    question: "Which category of terrestrial locomotion describes fish like the ropefish or eel that produce motion entirely through body undulation?",
+    choice_a: "Axial-based locomotion",
+    choice_b: "Appendicular-based locomotion",
+    choice_c: "Axial-appendicular locomotion",
+    choice_d: "Labriform swimming",
     correct_answer: "A",
-    explanation: "Drip irrigation achieves 90-95% water application efficiency by applying slow drips directly to crop roots, virtually eliminating surface runoff and deep percolation losses.",
-    fun_fact: "Switching from flood to drip irrigation can reduce farm water consumption by up to 60% while increasing crop yield by 20-90%.",
+    explanation: "Axial-based locomotion produces motion entirely through body bending or undulation, seen in elongate ropefish and eels, as well as jumping in blennies and rivulus.",
+    fun_fact: "Amphibious fishes rely on axial undulation when traversing damp mudbanks.",
     image_url: null,
   },
   {
-    id: "q-6",
-    category: "Agri & Fisheries Laws",
-    difficulty: "Hard",
-    question: "What does the Environmental Compliance Certificate (ECC) issued by DENR-EMB signify for an agribusiness or aquaculture project?",
-    choice_a: "A certificate granting exemption from all Philippine labor standards",
-    choice_b: "Official recognition that the project has planned mitigation measures for environmental impacts",
-    choice_c: "Automatic ownership of any public foreshore land",
-    choice_d: "A guarantee that the farm will never experience pest infestations",
-    correct_answer: "B",
-    explanation: "An ECC certifies that the proponent has complied with the requirements of the Environmental Impact Statement (EIS) System and committed to mitigating adverse environmental hazards.",
-    fun_fact: "Operating an environmentally critical venture without an ECC in the Philippines can incur cease-and-desist orders and substantial daily fines.",
-    image_url: null,
-  },
-  {
-    id: "q-7",
-    category: "Aquaculture & Marine Life",
+    id: "q-physio-2",
+    category: "Fisheries & Marine",
     difficulty: "Medium",
-    question: "What destructive fishing practice is strictly prohibited worldwide and in the Philippines due to its total destruction of coral reefs?",
-    choice_a: "Handline fishing (Kawil)",
-    choice_b: "Blast (dynamite) fishing and cyanide poisoning",
-    choice_c: "Crab pots with biodegradable escape rings",
-    choice_d: "Hook and line bottom fishing",
-    correct_answer: "B",
-    explanation: "Blast and chemical fishing shatter coral skeletons that take decades or centuries to rebuild, killing non-target juvenile fish and permanently degrading marine ecosystems.",
-    fun_fact: "It can take over 50 years for a blasted coral reef to recover even a fraction of its former biodiversity.",
-    image_url: null,
-  },
-  {
-    id: "q-8",
-    category: "Agri-Tech & Innovations",
-    difficulty: "Easy",
-    question: "In hydroponic and aquaponic farming, what serves as the nutrient delivery medium instead of traditional soil?",
-    choice_a: "Dry crushed cement",
-    choice_b: "Oxygenated water enriched with dissolved organic mineral nutrients or fish effluents",
-    choice_c: "Pure petroleum jelly",
-    choice_d: "Unprocessed saltwater brine",
-    correct_answer: "B",
-    explanation: "Hydroponics uses mineral water solutions, while aquaponics combines aquaculture with hydroponics: beneficial bacteria convert fish waste (ammonia) into nitrates that feed the crops.",
-    fun_fact: "Aquaponics consumes up to 90% less water than traditional soil farming because water is continuously recirculated.",
-    image_url: null,
-  },
-  {
-    id: "q-9",
-    category: "Sustainable Agriculture",
-    difficulty: "Hard",
-    question: "What is Integrated Pest Management (IPM)?",
-    choice_a: "Spraying chemical pesticides on a rigid daily schedule regardless of pest presence",
-    choice_b: "An ecosystem-based strategy combining biological controls, crop rotation, and targeted interventions",
-    choice_c: "Introducing invasive species without quarantine evaluation",
-    choice_d: "Burning fields after every single weekly harvest",
-    correct_answer: "B",
-    explanation: "IPM emphasizes natural predators, pest-resistant crop varieties, cultural sanitation, and economic injury thresholds, reserving chemical sprays only as an educated last resort.",
-    fun_fact: "IPM dramatically protects pollinator populations like bees, which are responsible for 1 out of every 3 bites of food we eat.",
-    image_url: null,
-  },
-  {
-    id: "q-10",
-    category: "Aquaculture & Marine Life",
-    difficulty: "Hard",
-    question: "What critical water parameter must be constantly monitored in Tilapia and Milkfish (Bangus) pond culture at dawn?",
-    choice_a: "Water color temperature in Kelvin",
-    choice_b: "Dissolved Oxygen (DO) levels, which drop lowest right before sunrise",
-    choice_c: "Atmospheric lunar gravitational pull",
-    choice_d: "Presence of decorative floating blossoms",
-    correct_answer: "B",
-    explanation: "At night, both fish and pond phytoplankton consume dissolved oxygen through respiration without photosynthesis occurring. DO drops to its lowest critical levels right before dawn.",
-    fun_fact: "Maintaining DO above 4.0 mg/L prevents fish stress, boosts feed conversion efficiency, and prevents sudden catastrophic mass fish mortality.",
-    image_url: null,
-  },
-  {
-    id: "q-11",
-    category: "Agri & Fisheries Laws",
-    difficulty: "Easy",
-    question: "Which government agency in the Philippines is primarily responsible for the development, conservation, and regulation of fisheries and aquatic resources?",
-    choice_a: "BFAR (Bureau of Fisheries and Aquatic Resources)",
-    choice_b: "DPWH (Department of Public Works and Highways)",
-    choice_c: "DICT (Department of Information and Communications Technology)",
-    choice_d: "BIR (Bureau of Internal Revenue)",
+    question: "What are the two major mechanical forces experienced by fish in water versus on land during locomotion?",
+    choice_a: "Viscosity and drag in water; gravity and friction on land",
+    choice_b: "Gravity and friction in water; viscosity and drag on land",
+    choice_c: "Atmospheric pressure and magnetism",
+    choice_d: "Hydrostatic lift in both environments",
     correct_answer: "A",
-    explanation: "BFAR, an attached agency under the Department of Agriculture, oversees national fisheries policies, aquaculture development, fishing vessel licensing, and coastal resource conservation.",
-    fun_fact: "BFAR operates monitoring, control, and surveillance (MCS) vessels to protect Philippine seas from illegal, unreported, and unregulated (IUU) fishing.",
+    explanation: "In an aquatic environment, viscosity and drag are the dominant opposing forces, whereas on land, an animal must overcome gravity and surface friction.",
+    fun_fact: "Water is approximately 800 times denser and 50 times more viscous than air.",
     image_url: null,
   },
   {
-    id: "q-12",
-    category: "Agri-Tech & Innovations",
+    id: "q-physio-3",
+    category: "Fisheries & Marine",
+    difficulty: "Easy",
+    question: "The walking catfish (Clarias batrachus), which uses both fins and body movements to produce terrestrial thrust, is locally known in Samar, Philippines by what name?",
+    choice_a: "Pantat",
+    choice_b: "Bangus",
+    choice_c: "Tilapia",
+    choice_d: "Danggit",
+    correct_answer: "A",
+    explanation: "Clarias batrachus is an amphibious catfish exhibiting axial-appendicular locomotion, locally called 'Pantat' in Samar, Philippines.",
+    fun_fact: "Walking catfish can breathe atmospheric air using a specialized suprabranchial arborescent organ above their gill cavity.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-4",
+    category: "Fisheries & Marine",
     difficulty: "Medium",
-    question: "How do agricultural drones help farmers practice precision farming?",
-    choice_a: "By playing music to crops to speed up cell division",
-    choice_b: "By utilizing multispectral sensors (NDVI) to detect crop stress, nitrogen deficiency, and targeted spraying",
-    choice_c: "By replacing the need for sunlight during photosynthesis",
-    choice_d: "By harvesting underground root crops automatically",
-    correct_answer: "B",
-    explanation: "Multispectral drone imaging measures normalized difference vegetation index (NDVI), detecting pest spots, nutrient stress, or moisture shortages days before they are visible to the naked human eye.",
-    fun_fact: "Drone targeted spraying can cut pesticide and fertilizer usage by 30-50% by treating only affected crop zones.",
+    question: "How does the barred mudskipper (Periophthalmus argentilineatus) locomote on land compared to swimming in water?",
+    choice_a: "On land it keeps its body relatively straight and plants pectoral fins simultaneously ('crutching')",
+    choice_b: "On land it only uses rapid tail oscillations with zero fin contact",
+    choice_c: "It rolls in a circular ball down slopes",
+    choice_d: "It slithers purely on its ventral belly without fin movement",
+    correct_answer: "A",
+    explanation: "Barred mudskippers swim by bending their body with reduced fin movement, but on land they keep their body straight and plant both pectoral fins together in a crutching motion.",
+    fun_fact: "Mudskippers can spend up to 90% of their time out of water on mangrove mudflats.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-5",
+    category: "Fisheries & Marine",
+    difficulty: "Medium",
+    question: "What is the primary function of the counter-current gas exchange arrangement in fish gills?",
+    choice_a: "Blood and water flow in opposite directions to maximize oxygen extraction from water into capillaries",
+    choice_b: "Blood and water flow in the same direction to decrease heart rate",
+    choice_c: "It prevents water from entering the digestive tract",
+    choice_d: "It generates internal body heat for warm-blooded swimming",
+    correct_answer: "A",
+    explanation: "Counter-current blood and water flow ensures that blood with low oxygen continuously encounters water with higher oxygen across the entire gill lamellae, achieving up to 85% oxygen transfer efficiency.",
+    fun_fact: "Gills are packed with hundreds of thousands of microscopic secondary lamellae, creating a surface area up to 10 times greater than the fish's total skin area.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-6",
+    category: "Fisheries & Marine",
+    difficulty: "Easy",
+    question: "Which protective structure covers and pumps water over the gills in modern bony fishes (teleosts)?",
+    choice_a: "Operculum",
+    choice_b: "Spiracle",
+    choice_c: "Claspers",
+    choice_d: "Lateral line",
+    correct_answer: "A",
+    explanation: "Bony fishes (Osteichthyes) possess a bony flap called the operculum that protects the delicate gill arches and actively pumps water across the filaments.",
+    fun_fact: "Cartilaginous sharks lack an operculum and have separate open gill slits protected only by skin flaps.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-7",
+    category: "Fisheries & Marine",
+    difficulty: "Hard",
+    question: "What is the difference between a physostomous and a physoclistic swim bladder?",
+    choice_a: "Physostomous retains a duct connecting to the digestive tract; physoclistic has lost this direct connection",
+    choice_b: "Physostomous is only found in sharks; physoclistic is found in amphibians",
+    choice_c: "Physostomous is filled with fluid; physoclistic is completely solid bone",
+    choice_d: "Physostomous operates under vacuum",
+    correct_answer: "A",
+    explanation: "Primitive teleosts have a physostomous swim bladder connected by a pneumatic duct to the esophagus. Advanced teleosts are physoclistic, regulating buoyancy strictly via vascular gas glands (rete mirabile) and the oval organ.",
+    fun_fact: "A physoclistic fish brought up rapidly from deep water may have its swim bladder expand uncontrollably due to rapid hydrostatic pressure drop.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-8",
+    category: "Fisheries & Marine",
+    difficulty: "Hard",
+    question: "In the teleost fish heart, in what sequence does deoxygenated blood flow through the four serial chambers?",
+    choice_a: "Sinus venosus → Atrium → Ventricle → Bulbus arteriosus",
+    choice_b: "Bulbus arteriosus → Ventricle → Atrium → Sinus venosus",
+    choice_c: "Left ventricle → Right ventricle → Aorta",
+    choice_d: "Atrium → Sinus venosus → Ventricle",
+    correct_answer: "A",
+    explanation: "Venous blood collects in the sinus venosus, moves into the atrium, is pumped forcefully by the muscular ventricle, and is dampened by the elastic bulbus arteriosus before entering the ventral aorta.",
+    fun_fact: "The bulbus arteriosus expands during ventricular contraction and recoils, smoothing the pulsatile blood flow through the delicate gill capillaries.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-9",
+    category: "Fisheries & Marine",
+    difficulty: "Hard",
+    question: "Which circulatory feature is unique to fishes compared to higher terrestrial vertebrates?",
+    choice_a: "Renal portal system routing venous blood from the tail/trunk through kidney capillaries",
+    choice_b: "Double parallel pulmonary circulation",
+    choice_c: "A four-chambered heart with two separate atria and two ventricles",
+    choice_d: "Lack of red blood cells (erythrocytes)",
+    correct_answer: "A",
+    explanation: "Fishes possess a distinct renal portal system where venous blood draining from trunk muscles and the caudal vein passes through the kidneys before returning to the heart via the ducts of Cuvier.",
+    fun_fact: "Fishes have both a hepatic portal system and a renal portal system.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-10",
+    category: "Fisheries & Marine",
+    difficulty: "Medium",
+    question: "Which swimming mode is characterized by high-speed cruising with narrow caudal peduncles and high-aspect-ratio lunate tails (such as in tuna)?",
+    choice_a: "Thunniform locomotion",
+    choice_b: "Anguilliform locomotion",
+    choice_c: "Ostraciiform locomotion",
+    choice_d: "Rajiform locomotion",
+    correct_answer: "A",
+    explanation: "Thunniform swimming confines lateral movement almost exclusively to the caudal peduncle and stiff crescent tail, producing maximum thrust with minimal drag.",
+    fun_fact: "Tuna can cruise at speeds exceeding 70 km/h using thunniform locomotion.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-11",
+    category: "Fisheries & Marine",
+    difficulty: "Easy",
+    question: "What is the primary sensory function of the lateral line system in fishes?",
+    choice_a: "Detecting water currents, vibrations, and pressure waves created by prey or predators",
+    choice_b: "Regulating internal body temperature",
+    choice_c: "Synthesizing vitamin D from sunlight",
+    choice_d: "Producing digestive bile for stomach enzymes",
+    correct_answer: "A",
+    explanation: "The lateral line consists of fluid-filled sensory canals and neuromast hair cells that perceive micro-displacements and pressure fluctuations in the aquatic environment.",
+    fun_fact: "Blind cavefish can navigate complex obstacles and catch fast-moving prey entirely using their lateral line system.",
+    image_url: null,
+  },
+  {
+  },
+  {
+    id: "q-physio-12",
+    category: "Fisheries & Marine",
+    difficulty: "Medium",
+    question: "What biological phenomenon causes an increase in oxygen consumption (metabolic rate) in fishes immediately following feeding and digestion?",
+    choice_a: "Specific Dynamic Action (SDA)",
+    choice_b: "Torpor",
+    choice_c: "Hypoxia",
+    choice_d: "Counter-current stagnation",
+    correct_answer: "A",
+    explanation: "Specific Dynamic Action (SDA), or the heat increment of feeding, represents the energy expenditure and oxygen demand required to ingest, digest, absorb, and assimilate nutrients.",
+    fun_fact: "In predatory fishes consuming large meals, SDA can triple oxygen consumption for several days.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-13",
+    category: "Fisheries & Marine",
+    difficulty: "Medium",
+    question: "How do freshwater fishes maintain osmotic balance when their body fluids are hyperosmotic to surrounding fresh water?",
+    choice_a: "Active absorption of salts via specialized gill chloride cells and excreting copious dilute urine",
+    choice_b: "Drinking copious amounts of ambient water and excreting concentrated salt pellets",
+    choice_c: "Ceasing all renal urine production completely",
+    choice_d: "Passively losing salt across waterproof dermal scales",
+    correct_answer: "A",
+    explanation: "Because freshwater fish are saltier than their environment, water passively floods in and salts are lost. To compensate, specialized chloride cells in the gills actively take up Na+ and Cl-, while the kidneys produce large volumes of dilute urine.",
+    fun_fact: "Marine teleosts face the opposite challenge: they lose water and must constantly drink seawater while pumping salts out through their gills.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-14",
+    category: "Fisheries & Marine",
+    difficulty: "Easy",
+    question: "What is the primary physiological distinction between red muscle fibers and white muscle fibers in fishes?",
+    choice_a: "Red muscle is highly vascularized for sustained aerobic cruising; white muscle is anaerobic for fast burst swimming",
+    choice_b: "White muscle produces blood cells; red muscle stores dietary fat",
+    choice_c: "Red muscle is found exclusively in cartilaginous sharks; white muscle is only in bony fishes",
+    choice_d: "There is no functional distinction other than pigmentation",
+    correct_answer: "A",
+    explanation: "Red muscle contains abundant myoglobin and mitochondria for slow-twitch, aerobic, long-distance swimming. White muscle makes up the bulk of the fillet, functioning anaerobically for rapid burst sprints when capturing prey or escaping predators.",
+    fun_fact: "Fast pelagic swimmers like tuna have thick lateral bands of deep red muscle with counter-current vascular heat exchangers.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-15",
+    category: "Fisheries & Marine",
+    difficulty: "Medium",
+    question: "Which type of scales with comb-like posterior margins (teeth) are typically found in higher spiny-rayed teleost fishes?",
+    choice_a: "Ctenoid scales",
+    choice_b: "Cycloid scales",
+    choice_c: "Placoid scales",
+    choice_d: "Ganoid scales",
+    correct_answer: "A",
+    explanation: "Ctenoid scales have microscopic comb-like serrations (ctenii) along their posterior margin, reducing hydrodynamic drag. Smooth circular scales are cycloid, while sharks possess placoid dermal denticles.",
+    fun_fact: "Annual growth rings (circuli) on cycloid and ctenoid scales are used by fisheries biologists to determine the age of fish.",
+    image_url: null,
+  },
+  {
+    id: "q-physio-16",
+    category: "Fisheries & Marine",
+    difficulty: "Easy",
+    question: "Which sensory receptor cells in the fish lateral line system are responsible for detecting water displacement and mechanical vibrations?",
+    choice_a: "Neuromast hair cells",
+    choice_b: "Rods and cones",
+    choice_c: "Chloride cells",
+    choice_d: "Taste buds",
+    correct_answer: "A",
+    explanation: "Neuromasts are the fundamental mechanoreceptive units of the lateral line, comprising kinocilia and stereocilia embedded within a gelatinous cupula that flexes when water moves.",
+    fun_fact: "Neuromasts allow schooling fish to synchronize swimming movements with nearby schoolmates within milliseconds.",
     image_url: null,
   }
 ];
 
-// Rich Curated Learning Modules
+// Only learning modules that have actual content files
 export const DEFAULT_LEARNING_MODULES: LearningModule[] = [
   {
-    id: "mod-1",
-    title: "Sustainable Aquaculture & RAS Systems",
+    id: "94303889-3db7-4667-a2be-27ddba5c08a1",
+    title: "Unit 1: INTRODUCTION TO FISH PHYSIOLOGY",
     category: "Fisheries & Marine",
-    description: "Master modern eco-friendly fish farming, water filtration techniques, and closed-loop recirculating systems.",
-    readTimeMinutes: 8,
+    description: "Fundamental concepts of fish anatomy, physiological adaptations, respiration, swimming locomotion, and aquatic biological systems.",
+    readTimeMinutes: 15,
     difficulty: "Beginner",
     objectives: [
-      "Understand the mechanics of mechanical and bio-filtration",
-      "Learn water quality monitoring: DO, pH, Ammonia, and Nitrite",
-      "Adopt best practices to minimize effluent pollution in coastal waters"
+      "Identify the external and internal anatomical systems of fishes",
+      "Understand biomechanics of BCF (body-caudal) and MPF (median-paired) swimming",
+      "Analyze adaptations in amphibious fishes including Samar's walking catfish (Pantat)",
+      "Examine counter-current gill exchange, swim bladder buoyancy, and cardiovascular circulation"
     ],
     contentSections: [
       {
-        heading: "1. The Aquaculture Revolution",
-        body: "With global wild-catch fisheries reaching biological ceilings, sustainable aquaculture now supplies more than 50% of the world's seafood. However, traditional pond culture often faces challenges with water discharge and disease transmission. Modern methods prioritize biosecure, resource-efficient setups.",
-        keyTakeaway: "Recirculating Aquaculture Systems (RAS) recycle over 90% of culture water, drastically reducing environmental footprint."
+        heading: "1. Overview of Fish Physiology & Anatomical Systems",
+        body: "Fish physiology covers the biological mechanisms that allow aquatic organisms to thrive, respire, regulate osmotic pressure, and navigate dynamic freshwater and marine environments. Understanding these adaptations is crucial for sustainable fisheries management and aquaculture stocking.",
+        keyTakeaway: "Physiological health directly influences growth rates, stress resilience, and reproductive success in culture environments."
       },
       {
-        heading: "2. The Biofilter & Nitrogen Cycle",
-        body: "Fish excrete ammonia through their gills and waste. In a closed system, beneficial nitrifying bacteria (Nitrosomonas and Nitrobacter) convert toxic ammonia into nitrite, and then into harmless nitrate, creating clean, oxygen-rich environments for stock.",
-        keyTakeaway: "A healthy biofilter requires continuous aeration, steady temperature, and a balanced carbon-to-nitrogen ratio."
+        heading: "2. Locomotion & Swimming Biomechanics",
+        body: "Fish propel themselves through water using body-caudal fin (BCF) and median-paired fin (MPF) modes. In water, viscosity and drag are the primary forces, whereas amphibious species moving onto land must overcome gravity and surface friction through axial, appendicular, or combined propulsion.",
+        keyTakeaway: "Locomotion efficiency determines foraging radius, predator avoidance, and dissolved oxygen consumption rates."
       },
       {
-        heading: "3. Practical Pond Management in the Tropics",
-        body: "For pond farmers growing Milkfish (Bangus) or Tilapia, regular paddlewheel aeration before dawn prevents oxygen crashes. Implementing mangrove buffers around coastal ponds also absorbs excess nutrients and stabilizes dikes against monsoon storms."
+        heading: "3. Gas Exchange & Cardiovascular Circulation",
+        body: "Fish exchange dissolved gases through fleshy gill filaments supported by gill arches and protected by the operculum. Counter-current blood flow ensures maximal oxygen transfer. Deoxygenated blood is pumped through a four-chamber serial heart (sinus venosus, atrium, ventricle, bulbus arteriosus) through single systemic circulation.",
+        keyTakeaway: "The counter-current capillary arrangement maintains a gradient along the entire gill lamellae surface."
       }
     ],
-    file_name: "Sustainable_Aquaculture_Guide.pdf",
+    file_name: "physio-LP1 (1) (2).pdf",
     file_data: null
-  },
-  {
-    id: "mod-2",
-    title: "Organic Soil Regeneration & Vermicomposting",
-    category: "Sustainable Crops",
-    description: "Transform crop residues and animal manures into rich organic compost to restore degraded agricultural soil.",
-    readTimeMinutes: 10,
-    difficulty: "Beginner",
-    objectives: [
-      "Identify the difference between chemical fertilization and soil biology",
-      "Build and maintain a high-yield African Nightcrawler vermicompost bed",
-      "Formulate organic foliar fertilizers and bio-pesticides"
-    ],
-    contentSections: [
-      {
-        heading: "1. Understanding Living Soil",
-        body: "Healthy soil is not inert dirt; it is a thriving ecosystem composed of mycorrhizal fungi, bacteria, protozoa, and earthworms. Decades of heavy synthetic chemical use deplete organic matter, leading to soil compaction and acidic pH levels.",
-        keyTakeaway: "Increasing soil organic matter by just 1% enables an acre of farmland to hold an extra 20,000 gallons of water."
-      },
-      {
-        heading: "2. Setting Up a Vermicompost Bed",
-        body: "African Nightcrawlers (Eudrilus eugeniae) are ideal for tropical conditions. Layer decomposed banana pseudostems, dried cow manure, and carbon-rich rice straw. Keep moisture at 60-70% in a shaded shed protected from direct sun and heavy rainfall.",
-        keyTakeaway: "Harvest worm castings every 30 to 45 days. The castings contain 5x more available nitrogen and 7x more potash than typical topsoil."
-      }
-    ],
-    file_name: "Soil_Regeneration_Handbook.pdf",
-    file_data: null
-  },
-  {
-    id: "mod-3",
-    title: "Philippine Fisheries Code & Coastal Resource Rights",
-    category: "Policy & Law",
-    description: "Navigate RA 8550 as amended by RA 10654, municipal waters regulations, licensing, and conservation policies.",
-    readTimeMinutes: 12,
-    difficulty: "Intermediate",
-    objectives: [
-      "Understand municipal water boundaries (15 km) and exclusive fisherfolk rights",
-      "Know the statutory penalties for blast, cyanide, and fine-mesh net fishing",
-      "Learn the legal steps for registering municipal fishing vessels (under 3 GT)"
-    ],
-    contentSections: [
-      {
-        heading: "1. Core Mandates of RA 8550 & RA 10654",
-        body: "The Philippine Fisheries Code was enacted to achieve food security while limiting resource exploitation to sustainable maximum yields. It empowers coastal local government units (LGUs) to manage municipal waters collaboratively with FARMCs (Fisheries and Aquatic Resources Management Councils).",
-        keyTakeaway: "Municipal waters belong exclusively to municipal fisherfolk, prioritizing local artisanal livelihoods."
-      },
-      {
-        heading: "2. Prohibited Acts and Stiff Penalties",
-        body: "Amendments under RA 10654 significantly increased administrative fines and criminal liabilities for commercial intrusion into municipal waters, blast fishing, and fishing during seasonal closed periods. Preserving breeding grounds ensures multi-generational harvests."
-      }
-    ],
-    file_name: "Fisheries_Law_Compliance_Brief.pdf",
-    file_data: null
-  },
-  {
-    id: "mod-4",
-    title: "Solar-Powered Precision Drip Irrigation",
-    category: "Agri-Tech",
-    description: "Design low-cost, off-grid solar pumping systems that optimize water usage and slash diesel generator costs.",
-    readTimeMinutes: 7,
-    difficulty: "Intermediate",
-    objectives: [
-      "Size solar PV panels and DC submersible water pumps for farm scale",
-      "Calculate emitter flow rates and crop water requirements (evapotranspiration)",
-      "Set up automatic timer valves and inline disc filtration"
-    ],
-    contentSections: [
-      {
-        heading: "1. Why Off-Grid Solar Pumping Makes Economic Sense",
-        body: "Rural farmers often spend up to 40% of their operational budget on diesel fuel to run water pumps. Solar photovoltaic pumping replaces recurring fuel expenses with clean, zero-emission energy paid off within 18-24 months of installation.",
-        keyTakeaway: "Combining solar power with drip irrigation avoids battery degradation by pumping directly into elevated storage tanks during daylight."
-      }
-    ],
-    file_name: "Solar_Drip_Irrigation_Blueprints.pdf",
-    file_data: null
-  }
-];
-
-// Seed Community Leaderboard with realistic scores
-export const DEFAULT_LEADERBOARD: LeaderboardRecord[] = [
-  {
-    user_id: "user-top-1",
-    user_name: "Maria Santos (Agri-Scholar)",
-    total_xp: 980,
-    best_score: 100,
-    quiz_count: 10,
-    badge: "Master Harvester",
-    rank: 1
-  },
-  {
-    user_id: "user-top-2",
-    user_name: "Mang Juan Dela Cruz",
-    total_xp: 850,
-    best_score: 95,
-    quiz_count: 9,
-    badge: "Coastal Guardian",
-    rank: 2
-  },
-  {
-    user_id: "user-top-3",
-    user_name: "Elena Ramos (SSU Fisheries)",
-    total_xp: 740,
-    best_score: 90,
-    quiz_count: 8,
-    badge: "Eco-Innovator",
-    rank: 3
-  },
-  {
-    user_id: "user-top-4",
-    user_name: "Captain Ricardo Tan",
-    total_xp: 620,
-    best_score: 85,
-    quiz_count: 7,
-    badge: "Aquaculture Scout",
-    rank: 4
-  },
-  {
-    user_id: "user-top-5",
-    user_name: "Aira Mae Gomez",
-    total_xp: 510,
-    best_score: 80,
-    quiz_count: 6,
-    badge: "Green Sprout",
-    rank: 5
   }
 ];
 
@@ -378,54 +313,31 @@ export const LOCAL_STORAGE_KEYS = {
   QUESTIONS: "kaani_custom_questions",
   USER: "user",
   AUTH: "isAuthenticated",
-  LEADERBOARD: "kaani_local_leaderboard"
+  QUIZ_HISTORY: "kaani_personal_quiz_history"
 };
 
-export function getLocalLeaderboard(): LeaderboardRecord[] {
+export function getPersonalQuizHistory(): QuizHistoryRecord[] {
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.LEADERBOARD);
-    if (!raw) {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.LEADERBOARD, JSON.stringify(DEFAULT_LEADERBOARD));
-      return DEFAULT_LEADERBOARD;
-    }
-    return JSON.parse(raw);
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.QUIZ_HISTORY);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return DEFAULT_LEADERBOARD;
+    return [];
   }
 }
 
-export function saveScoreToLocalLeaderboard(userName: string, scorePercent: number, totalQuestions: number): LeaderboardRecord[] {
-  const current = getLocalLeaderboard();
-  const xpEarned = Math.round(scorePercent * (totalQuestions / 10) * 10);
-  
-  const existingIndex = current.findIndex(e => e.user_name.toLowerCase() === userName.toLowerCase());
-  
-  if (existingIndex >= 0) {
-    current[existingIndex].total_xp += xpEarned;
-    current[existingIndex].best_score = Math.max(current[existingIndex].best_score, scorePercent);
-    current[existingIndex].quiz_count += 1;
-  } else {
-    current.push({
-      user_id: "user-" + Date.now(),
-      user_name: userName,
-      total_xp: xpEarned,
-      best_score: scorePercent,
-      quiz_count: 1,
-      badge: scorePercent >= 90 ? "Master Harvester" : scorePercent >= 70 ? "Eco-Innovator" : "Green Sprout",
-    });
-  }
+export function savePersonalQuizAttempt(attempt: Omit<QuizHistoryRecord, "id">): QuizHistoryRecord {
+  const current = getPersonalQuizHistory();
+  const record: QuizHistoryRecord = {
+    ...attempt,
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'attempt-' + Date.now(),
+  };
 
-  // Sort descending by total XP
-  current.sort((a, b) => b.total_xp - a.total_xp);
-  
-  // Reassign ranks
-  const ranked = current.map((item, idx) => ({ ...item, rank: idx + 1 }));
-  
+  current.unshift(record);
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.LEADERBOARD, JSON.stringify(ranked));
+    localStorage.setItem(LOCAL_STORAGE_KEYS.QUIZ_HISTORY, JSON.stringify(current.slice(0, 50)));
   } catch (err) {
-    console.warn("Failed saving leaderboard to localStorage", err);
+    console.warn("Failed saving quiz attempt to localStorage", err);
   }
 
-  return ranked;
+  return record;
 }
