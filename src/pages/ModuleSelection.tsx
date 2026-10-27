@@ -15,7 +15,8 @@ import {
   ArrowLeft,
   Share2,
   FileText,
-  ExternalLink
+  ExternalLink,
+  Languages
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,10 +28,12 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_LEARNING_MODULES, LearningModule } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage, FILIPINO_MODULE_DATA } from "@/lib/i18n";
 
 const ModuleSelection = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { language, toggleLanguage, isFilipino, t } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -338,17 +341,26 @@ const ModuleSelection = () => {
               
               {/* Modal Header */}
               <div className="p-6 md:p-8 bg-gradient-to-r from-emerald-50 to-sky-50 border-b border-emerald-100 flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline" className="text-xs border-emerald-300 bg-white font-bold text-emerald-800">
-                      {activeModule.category}
+                      {isFilipino && activeModule.id === "94303889-3db7-4667-a2be-27ddba5c08a1" ? FILIPINO_MODULE_DATA.unit1.category : activeModule.category}
                     </Badge>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" /> {activeModule.readTimeMinutes} min read
                     </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleLanguage}
+                      className="h-7 text-xs rounded-lg border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-900 font-bold ml-1 flex items-center gap-1 shadow-2xs"
+                    >
+                      <Languages className="h-3.5 w-3.5 text-emerald-700" />
+                      <span>{isFilipino ? "English Version" : "Isalin sa Filipino"}</span>
+                    </Button>
                   </div>
                   <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-slate-900">
-                    {activeModule.title}
+                    {isFilipino && activeModule.id === "94303889-3db7-4667-a2be-27ddba5c08a1" ? FILIPINO_MODULE_DATA.unit1.title : activeModule.title}
                   </h2>
                 </div>
 
@@ -364,39 +376,50 @@ const ModuleSelection = () => {
               <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1 text-slate-800 leading-relaxed text-sm md:text-base">
                 
                 {/* Learning Objectives Callout */}
-                {activeModule.objectives && activeModule.objectives.length > 0 && (
-                  <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-3 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      Key Learning Objectives
-                    </h4>
-                    <ul className="space-y-2 text-xs md:text-sm text-emerald-950">
-                      {activeModule.objectives.map((obj, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="font-bold text-emerald-600">•</span>
-                          <span>{obj}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {(() => {
+                  const objectives = isFilipino && activeModule.id === "94303889-3db7-4667-a2be-27ddba5c08a1"
+                    ? FILIPINO_MODULE_DATA.unit1.objectives
+                    : activeModule.objectives;
+                  if (!objectives || objectives.length === 0) return null;
+                  return (
+                    <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-3 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        {isFilipino ? "Mga Layunin sa Pagkatuto" : "Key Learning Objectives"}
+                      </h4>
+                      <ul className="space-y-2 text-xs md:text-sm text-emerald-950">
+                        {objectives.map((obj, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="font-bold text-emerald-600">•</span>
+                            <span>{obj}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
 
                 {/* Formatted Content Sections */}
-                {activeModule.contentSections && activeModule.contentSections.map((sec, i) => (
-                  <div key={i} className="space-y-3 pt-2">
-                    <h3 className="text-lg md:text-xl font-bold font-heading text-slate-900">
-                      {sec.heading}
-                    </h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {sec.body}
-                    </p>
-                    {sec.keyTakeaway && (
-                      <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
-                        <strong>Practical Takeaway:</strong> {sec.keyTakeaway}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {(() => {
+                  const sections = isFilipino && activeModule.id === "94303889-3db7-4667-a2be-27ddba5c08a1"
+                    ? FILIPINO_MODULE_DATA.unit1.contentSections
+                    : activeModule.contentSections;
+                  return sections?.map((sec, i) => (
+                    <div key={i} className="space-y-3 pt-2">
+                      <h3 className="text-lg md:text-xl font-bold font-heading text-slate-900">
+                        {sec.heading}
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {sec.body}
+                      </p>
+                      {sec.keyTakeaway && (
+                        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
+                          <strong>{isFilipino ? "Pangunahing Aral:" : "Practical Takeaway:"}</strong> {sec.keyTakeaway}
+                        </div>
+                      )}
+                    </div>
+                  ));
+                })()}
 
               </div>
 

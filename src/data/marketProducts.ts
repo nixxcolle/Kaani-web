@@ -1,3 +1,5 @@
+export type ProductStatus = "Available" | "Out of Stock" | "Unavailable";
+
 export interface Product {
   id: string;
   name: string;
@@ -16,6 +18,10 @@ export interface Product {
   rating?: number;
   isFeatured?: boolean;
   createdAt?: string;
+  status?: ProductStatus;
+  agreedToRules?: boolean;
+  agreedAt?: string;
+  is_hidden?: boolean;
 }
 
 export const INITIAL_PRODUCTS: Product[] = [
@@ -243,3 +249,14 @@ export const MARKET_LOCATIONS = [
   "Calbayog City, Samar",
   "Basey, Samar"
 ];
+
+export function getProductEffectiveStatus(product: Product): ProductStatus {
+  if (product.status === "Unavailable") {
+    return "Unavailable";
+  }
+  if (product.status === "Out of Stock" || product.availableStock <= 0) {
+    return "Out of Stock";
+  }
+  return product.status || "Available";
+}
+

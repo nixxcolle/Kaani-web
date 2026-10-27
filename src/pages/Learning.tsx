@@ -14,7 +14,8 @@ import {
   CheckCircle2, 
   Sparkles,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Languages
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,8 +25,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { DEFAULT_LEARNING_MODULES, LearningModule } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
+import { useLanguage, FILIPINO_MODULE_DATA } from "@/lib/i18n";
 
 const Learning = () => {
+  const { language, toggleLanguage, isFilipino, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [modules, setModules] = useState<LearningModule[]>(DEFAULT_LEARNING_MODULES);
@@ -194,17 +197,31 @@ const Learning = () => {
       <section className="py-14 md:py-20 bg-gradient-section border-b border-emerald-100/60">
         <div className="container px-4">
           <div className="max-w-3xl mx-auto text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-kaani-primary text-xs md:text-sm font-bold border border-emerald-200">
-              <BookOpen className="h-4 w-4" />
-              <span>Comprehensive Knowledge Center</span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-kaani-primary text-xs md:text-sm font-bold border border-emerald-200">
+                <BookOpen className="h-4 w-4" />
+                <span>{isFilipino ? "Sentro ng Kaalaman at Pagsasanay" : "Comprehensive Knowledge Center"}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleLanguage}
+                className="h-8 rounded-full border-emerald-300 bg-white/90 hover:bg-emerald-50 text-emerald-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs"
+                title="Isalin sa Filipino / Switch to English"
+              >
+                <Languages className="h-3.5 w-3.5 text-emerald-700" />
+                <span>{isFilipino ? "English Version" : "Isalin sa Filipino"}</span>
+              </Button>
             </div>
 
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
-              Learning Hub
+              {isFilipino ? "Sentro ng Kaalaman (Learning Hub)" : "Learning Hub"}
             </h1>
 
             <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Master agriculture and fisheries through practical modules, technical blueprints, and community-driven learning resources.
+              {isFilipino 
+                ? "Pag-aralan ang wastong pamamahala sa agrikultura at pangisdaan gamit ang mga praktikal na modyul, teknikal na plano, at kaalaman ng komunidad."
+                : "Master agriculture and fisheries through practical modules, technical blueprints, and community-driven learning resources."}
             </p>
             
             {/* Search Bar */}

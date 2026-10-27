@@ -3,7 +3,6 @@ import {
   BookOpen, 
   Leaf, 
   Scale, 
-  ArrowRight, 
   CheckCircle, 
   FileText, 
   HelpCircle,
@@ -14,9 +13,7 @@ import {
   Sprout,
   Waves,
   Store,
-  ShoppingBag,
-  MapPin,
-  Heart
+  ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -298,179 +295,6 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Kaani Market Showcase Section */}
-      <section className="py-16 md:py-20 bg-gradient-to-b from-white to-[#f0fdf4] border-t border-emerald-100">
-        <div className="container px-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 max-w-7xl mx-auto">
-            <div className="space-y-2">
-              <span className="text-xs uppercase font-extrabold tracking-wider text-emerald-800 bg-emerald-100 px-3.5 py-1.5 rounded-full border border-emerald-200 inline-flex items-center gap-1.5">
-                <Store className="h-3.5 w-3.5 text-emerald-700" />
-                Empowering Local Producers
-              </span>
-              <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-emerald-950">
-                Fresh from Farms and Waters
-              </h2>
-              <p className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed">
-                Connect directly with hardworking farmers and fisherfolk. Buy freshly harvested produce, sustainably caught seafood, and artisanal local goods.
-              </p>
-            </div>
-
-            <Button
-              className="bg-[#0d533a] hover:bg-[#083a28] text-white font-bold rounded-xl px-5 py-4 shadow-xs shrink-0 self-start md:self-auto text-sm"
-              asChild
-            >
-              <Link to="/market" className="flex items-center gap-2">
-                <span>Visit Kaani Market</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-
-          {/* 4 Preview Cards Matching Reference */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-7xl mx-auto">
-            {/* Preview Card 1: Fresh Vegetables */}
-            <Link to="/market?cat=Vegetables+%26+Fruits" className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col">
-              <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50/50">
-                <img 
-                  src="/assets/images/market/vegetables-bundle.jpg" 
-                  alt="Fresh Vegetables Bundle" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/assets/images/market/vegetables-bundle.jpg";
-                  }}
-                />
-                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-xs">
-                  Farm Product
-                </span>
-                <span className="absolute bottom-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-950/75 text-emerald-200">
-                  95% Producer Net
-                </span>
-              </div>
-              <div className="p-3.5 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
-                    Fresh Vegetables Bundle
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-emerald-600" />
-                    San Isidro, Sorsogon
-                  </p>
-                </div>
-                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2.5">
-                  <span className="text-sm font-black text-emerald-800">&#8369; 50.00 <span className="text-[11px] font-semibold text-slate-500">/ kg</span></span>
-                  <span className="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
-                </div>
-              </div>
-            </Link>
-
-            {/* Preview Card 2: Fresh Tilapia */}
-            <Link to="/market?cat=Fish+%26+Seafood" className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col">
-              <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50/50">
-                <img 
-                  src="/assets/images/market/fresh-tilapia.jpg" 
-                  alt="Fresh Tilapia" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/assets/images/market/vegetables-bundle.jpg";
-                  }}
-                />
-                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-600 text-white shadow-xs">
-                  Fishery Product
-                </span>
-                <span className="absolute bottom-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-950/75 text-emerald-200">
-                  95% Producer Net
-                </span>
-              </div>
-              <div className="p-3.5 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
-                    Fresh Tilapia
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-emerald-600" />
-                    Pilar, Sorsogon
-                  </p>
-                </div>
-                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2.5">
-                  <span className="text-sm font-black text-emerald-800">&#8369; 120.00 <span className="text-[11px] font-semibold text-slate-500">/ kg</span></span>
-                  <span className="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
-                </div>
-              </div>
-            </Link>
-
-            {/* Preview Card 3: Saba Banana */}
-            <Link to="/market?cat=Vegetables+%26+Fruits" className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col">
-              <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50/50">
-                <img 
-                  src="/assets/images/market/saba-banana.jpg" 
-                  alt="Saba Banana" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/assets/images/market/vegetables-bundle.jpg";
-                  }}
-                />
-                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-xs">
-                  Farm Product
-                </span>
-                <span className="absolute bottom-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-950/75 text-emerald-200">
-                  95% Producer Net
-                </span>
-              </div>
-              <div className="p-3.5 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
-                    Saba Banana
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-emerald-600" />
-                    Donsol, Sorsogon
-                  </p>
-                </div>
-                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2.5">
-                  <span className="text-sm font-black text-emerald-800">&#8369; 40.00 <span className="text-[11px] font-semibold text-slate-500">/ kg</span></span>
-                  <span className="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
-                </div>
-              </div>
-            </Link>
-
-            {/* Preview Card 4: Dried Tuyo */}
-            <Link to="/market?cat=Fish+%26+Seafood" className="group bg-white rounded-2xl border border-emerald-100 overflow-hidden shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col">
-              <div className="relative aspect-[4/3] overflow-hidden bg-emerald-50/50">
-                <img 
-                  src="/assets/images/market/dried-tuyo.jpg" 
-                  alt="Dried Tuyo" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/assets/images/market/vegetables-bundle.jpg";
-                  }}
-                />
-                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-600 text-white shadow-xs">
-                  Fishery Product
-                </span>
-                <span className="absolute bottom-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-950/75 text-emerald-200">
-                  95% Producer Net
-                </span>
-              </div>
-              <div className="p-3.5 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
-                    Dried Tuyo
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-emerald-600" />
-                    Matnog, Sorsogon
-                  </p>
-                </div>
-                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2.5">
-                  <span className="text-sm font-black text-emerald-800">&#8369; 250.00 <span className="text-[11px] font-semibold text-slate-500">/ pack</span></span>
-                  <span className="text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
-                </div>
-              </div>
-            </Link>
           </div>
         </div>
       </section>

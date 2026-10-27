@@ -12,10 +12,11 @@ import {
   LogOut, 
   User as UserIcon,
   ShoppingBag,
-  ExternalLink
+  ExternalLink,
+  Languages
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
+import { useLanguage } from "@/lib/i18n";
 import { logout } from "@/lib/auth";
 
 interface UserProfile {
@@ -26,6 +27,7 @@ interface UserProfile {
 }
 
 const Header = () => {
+  const { language, toggleLanguage, t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,11 +74,11 @@ const Header = () => {
   };
 
   const navItems = [
-    { name: "Home", href: "/", icon: Home },
-    { name: "Kaani Market", href: "/market", icon: Store, isMarket: true },
-    { name: "Learning Hub", href: "/learning", icon: BookOpen },
-    { name: "Legal Information", href: "/legal", icon: Scale },
-    { name: "Sustainability", href: "/sustainability", icon: Leaf },
+    { name: t("nav.home", "Home"), href: "/", icon: Home },
+    { name: t("nav.market", "Kaani Market"), href: "/market", icon: Store, isMarket: true },
+    { name: t("nav.learning", "Learning Hub"), href: "/learning", icon: BookOpen },
+    { name: t("nav.legal", "Legal Information"), href: "/legal", icon: Scale },
+    { name: t("nav.sustainability", "Sustainability"), href: "/sustainability", icon: Leaf },
   ];
 
   const isActive = (href: string) => {
@@ -193,6 +195,19 @@ const Header = () => {
             )}
           </div>
 
+          {/* Language Switcher (EN | FIL) */}
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200/90 bg-emerald-50/60 hover:bg-emerald-100/70 text-xs font-bold text-emerald-950 transition-all shadow-2xs active:scale-95"
+            title={language === "en" ? "Isalin sa Filipino" : "Switch to English"}
+            aria-label="Toggle language between English and Filipino"
+          >
+            <Languages className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+            <span className={language === "en" ? "text-emerald-900 font-extrabold" : "text-slate-400 font-normal"}>EN</span>
+            <span className="text-slate-300">/</span>
+            <span className={language === "fil" ? "text-emerald-900 font-extrabold" : "text-slate-400 font-normal"}>FIL</span>
+          </button>
+
           {/* Auth Actions (Login & Register) */}
           <div className="flex items-center space-x-2 pl-2 border-l border-emerald-100 ml-1">
             {user ? (
@@ -218,13 +233,13 @@ const Header = () => {
                   to="/auth"
                   className="px-3.5 py-1.5 text-sm font-semibold text-emerald-900 hover:text-emerald-700 hover:bg-emerald-50/80 rounded-xl border border-transparent transition-colors"
                 >
-                  Login
+                  {t("nav.login", "Login")}
                 </Link>
                 <Link
                   to="/role-selection"
                   className="px-4 py-1.5 text-sm font-bold text-white bg-emerald-800 hover:bg-emerald-900 shadow-xs hover:shadow-md rounded-xl transition-all active:scale-95"
                 >
-                  Register
+                  {t("nav.register", "Register")}
                 </Link>
               </>
             )}
@@ -233,6 +248,15 @@ const Header = () => {
 
         {/* Mobile menu trigger */}
         <div className="flex items-center gap-2 lg:hidden">
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-xs font-bold text-emerald-950 shadow-2xs"
+            title="Toggle Language"
+            aria-label="Language switch"
+          >
+            <Languages className="h-3.5 w-3.5 text-emerald-700" />
+            <span>{language.toUpperCase()}</span>
+          </button>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="p-2 text-emerald-900 rounded-xl hover:bg-emerald-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600"
@@ -296,6 +320,30 @@ const Header = () => {
               );
             })}
           </nav>
+
+          {/* Language Switcher Row in Mobile Menu */}
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/80 border border-emerald-200/80">
+            <span className="text-xs font-bold text-emerald-950 flex items-center gap-2">
+              <Languages className="h-4 w-4 text-emerald-700" />
+              Wika / Language
+            </span>
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-emerald-200 text-xs font-bold shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`px-3 py-1 rounded-lg transition-colors ${language === "en" ? "bg-emerald-800 text-white font-extrabold shadow-2xs" : "text-slate-600 hover:text-emerald-900"}`}
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("fil")}
+                className={`px-3 py-1 rounded-lg transition-colors ${language === "fil" ? "bg-emerald-800 text-white font-extrabold shadow-2xs" : "text-slate-600 hover:text-emerald-900"}`}
+              >
+                Filipino
+              </button>
+            </div>
+          </div>
 
           {/* Mobile Auth and Action Section */}
           <div className="pt-4 border-t border-emerald-100">
