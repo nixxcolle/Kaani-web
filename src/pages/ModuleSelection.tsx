@@ -1,3 +1,5 @@
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useText } from "@/lib/translate";
 import { useMemo, useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { 
@@ -17,7 +19,7 @@ import {
   FileText,
   ExternalLink,
   Languages
-} from "lucide-react";
+} from "@/components/icons";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,9 +30,10 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_LEARNING_MODULES, LearningModule } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
-import { useLanguage, FILIPINO_MODULE_DATA } from "@/lib/i18n";
+import { useLanguage } from "@/lib/language-context";
 
 const ModuleSelection = () => {
+  const tx = useText();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { language, toggleLanguage, isFilipino, t } = useLanguage();
@@ -58,14 +61,14 @@ const ModuleSelection = () => {
 
         if (!error && data && data.length > 0) {
           // Only keep modules that have actual file data or file name
-          const validData = data.filter((m: any) => 
+          const validData = data.filter((m) => 
             (m.file_data && m.file_data.trim().length > 0) || 
             (m.file_name && m.file_name.trim().length > 0)
           );
 
           const combined: LearningModule[] = [...DEFAULT_LEARNING_MODULES];
 
-          validData.forEach((mod: any, idx: number) => {
+          validData.forEach((mod, idx: number) => {
             const existingIdx = combined.findIndex(e => e.id === mod.id);
             if (existingIdx >= 0) {
               if (mod.file_data) combined[existingIdx].file_data = mod.file_data;
@@ -137,12 +140,12 @@ const ModuleSelection = () => {
     const query = searchQuery.trim().toLowerCase();
     if (query) {
       result = result.filter(m =>
-        `${m.title} ${m.description} ${m.category}`.toLowerCase().includes(query)
+        `${m.title} ${m.description} ${m.category} ${tx(m.title)} ${tx(m.description)} ${tx(m.category)}`.toLowerCase().includes(query)
       );
     }
 
     return result;
-  }, [searchQuery, selectedCategory, modules]);
+  }, [searchQuery, selectedCategory, modules, tx]);
 
   const handleOpenModule = (mod: LearningModule) => {
     setActiveModule(mod);
@@ -212,7 +215,7 @@ const ModuleSelection = () => {
                 className="inline-flex items-center gap-1.5 text-xs md:text-sm font-semibold text-muted-foreground hover:text-kaani-primary transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span>Back to Learning Hub</span>
+                <span>{tx("Back to Learning Hub")}</span>
               </Link>
             </div>
 
@@ -220,16 +223,12 @@ const ModuleSelection = () => {
             <div className="rounded-3xl bg-white shadow-elevated border border-emerald-100 p-6 md:p-10 text-center space-y-4 relative overflow-hidden">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-kaani-primary text-xs md:text-sm font-bold border border-emerald-200">
                 <BookOpen className="h-4 w-4" />
-                <span>Curated Knowledge Library</span>
+                <span>{tx("Curated Knowledge Library")}</span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark tracking-tight">
-                Practical Training Modules
-              </h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark tracking-tight">{tx("Practical Training Modules")}</h1>
 
-              <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                Step-by-step guides, biological threshold tables, and statutory checklists. Click on any module to read online or download for offline field use.
-              </p>
+              <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">{tx("Step-by-step guides, biological threshold tables, and statutory checklists. Click on any module to read online or download for offline field use.")}</p>
 
               {/* Search Bar */}
               <div className="max-w-2xl mx-auto pt-2">
@@ -239,7 +238,7 @@ const ModuleSelection = () => {
                     type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by topic, crop, fish species, or law (e.g., RAS, Tilapia, Soil)..."
+                    placeholder={tx("Search by topic, crop, fish species, or law (e.g., RAS, Tilapia, Soil)...")}
                     className="h-13 rounded-2xl border-slate-200 bg-slate-50/70 pl-11 pr-4 text-sm md:text-base focus-visible:ring-2 focus-visible:ring-kaani-primary"
                   />
                 </div>
@@ -257,7 +256,7 @@ const ModuleSelection = () => {
                         : "bg-white text-muted-foreground border-slate-200 hover:bg-emerald-50 hover:text-kaani-dark"
                     }`}
                   >
-                    {cat}
+                    {tx(cat)}
                   </button>
                 ))}
               </div>
@@ -274,36 +273,33 @@ const ModuleSelection = () => {
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-4">
                       <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                        {getCategoryIcon(module.category)}
+                        {tx(getCategoryIcon(module.category))}
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-[10px] uppercase font-bold border-slate-200 text-muted-foreground">
-                          {module.category}
+                          {tx(module.category)}
                         </Badge>
                         <Badge className="text-[10px]" variant="secondary">
-                          {module.difficulty}
+                          {tx(module.difficulty)}
                         </Badge>
                       </div>
                     </div>
 
                     <CardTitle className="text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors">
-                      {module.title}
+                      {tx(module.title)}
                     </CardTitle>
 
                     <CardDescription className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                      {module.description}
+                      {tx(module.description)}
                     </CardDescription>
                   </div>
 
                   <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
-                      {module.readTimeMinutes} min read
-                    </span>
+                      {tx(module.readTimeMinutes)}{tx(" min read")}</span>
 
-                    <span className="text-xs font-bold text-kaani-primary group-hover:underline flex items-center gap-1">
-                      Read Module →
-                    </span>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); handleOpenModule(module); }} className="text-xs font-bold text-kaani-primary hover:underline flex items-center gap-1">{tx("Read Module →")}</button>
                   </div>
                 </Card>
               ))}
@@ -312,10 +308,8 @@ const ModuleSelection = () => {
             {filteredModules.length === 0 && (
               <div className="py-16 text-center bg-white rounded-3xl border border-slate-100 p-8">
                 <BookOpen className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-slate-800">No modules found</h3>
-                <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  We couldn't find any modules matching "{searchQuery}". Try selecting another category.
-                </p>
+                <h3 className="text-lg font-bold text-slate-800">{tx("No modules found")}</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">{tx("We couldn't find any modules matching \"")}{tx(searchQuery)}{tx("\". Try selecting another category.")}</p>
                 <Button 
                   variant="outline" 
                   onClick={() => {
@@ -323,9 +317,7 @@ const ModuleSelection = () => {
                     setSelectedCategory("All");
                   }}
                   className="rounded-xl text-xs font-bold"
-                >
-                  Reset Filters
-                </Button>
+                >{tx("Reset Filters")}</Button>
               </div>
             )}
 
@@ -336,19 +328,19 @@ const ModuleSelection = () => {
         {/* INTERACTIVE FULL-SCREEN / MODAL READER FOR MODULES */}
         {/* ============================================================ */}
         {activeModule && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-elevated border border-emerald-100 overflow-hidden animate-in zoom-in-95 duration-200">
+          <Dialog open onOpenChange={(open) => { if (!open) setActiveModule(null); }}>
+            <DialogContent className="bg-white rounded-3xl max-w-3xl w-[calc(100%-2rem)] max-h-[90dvh] flex flex-col p-0 gap-0 shadow-elevated border border-emerald-100 overflow-hidden">
+              <DialogDescription className="sr-only">{tx(activeModule.description)}</DialogDescription>
               
               {/* Modal Header */}
               <div className="p-6 md:p-8 bg-gradient-to-r from-emerald-50 to-sky-50 border-b border-emerald-100 flex items-start justify-between gap-4">
                 <div className="space-y-1.5 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline" className="text-xs border-emerald-300 bg-white font-bold text-emerald-800">
-                      {isFilipino && activeModule.id === "94303889-3db7-4667-a2be-27ddba5c08a1" ? FILIPINO_MODULE_DATA.unit1.category : activeModule.category}
+                      {tx(activeModule.category)}
                     </Badge>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> {activeModule.readTimeMinutes} min read
-                    </span>
+                      <Clock className="h-3 w-3" /> {tx(activeModule.readTimeMinutes)}{tx(" min read")}</span>
                     <Button
                       variant="outline"
                       size="sm"
@@ -356,20 +348,13 @@ const ModuleSelection = () => {
                       className="h-7 text-xs rounded-lg border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-900 font-bold ml-1 flex items-center gap-1 shadow-2xs"
                     >
                       <Languages className="h-3.5 w-3.5 text-emerald-700" />
-                      <span>{isFilipino ? "English Version" : "Isalin sa Filipino"}</span>
+                      <span>{isFilipino ? "Switch to English" : "Isalin sa Filipino"}</span>
                     </Button>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-slate-900">
-                    {isFilipino && activeModule.id === "94303889-3db7-4667-a2be-27ddba5c08a1" ? FILIPINO_MODULE_DATA.unit1.title : activeModule.title}
-                  </h2>
+                  <DialogTitle className="text-2xl md:text-3xl font-extrabold font-heading text-slate-900">
+                    {tx(activeModule.title)}
+                  </DialogTitle>
                 </div>
-
-                <button
-                  onClick={() => setActiveModule(null)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
               </div>
 
               {/* Modal Body / Scrollable Content */}
@@ -377,21 +362,19 @@ const ModuleSelection = () => {
                 
                 {/* Learning Objectives Callout */}
                 {(() => {
-                  const objectives = isFilipino && activeModule.id === "94303889-3db7-4667-a2be-27ddba5c08a1"
-                    ? FILIPINO_MODULE_DATA.unit1.objectives
-                    : activeModule.objectives;
+                  const objectives = activeModule.objectives;
                   if (!objectives || objectives.length === 0) return null;
                   return (
                     <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-3 flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        {isFilipino ? "Mga Layunin sa Pagkatuto" : "Key Learning Objectives"}
+                        {tx("Key Learning Objectives")}
                       </h4>
                       <ul className="space-y-2 text-xs md:text-sm text-emerald-950">
                         {objectives.map((obj, i) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="font-bold text-emerald-600">•</span>
-                            <span>{obj}</span>
+                            <span className="font-bold text-emerald-600">{tx("•")}</span>
+                            <span>{tx(obj)}</span>
                           </li>
                         ))}
                       </ul>
@@ -401,20 +384,18 @@ const ModuleSelection = () => {
 
                 {/* Formatted Content Sections */}
                 {(() => {
-                  const sections = isFilipino && activeModule.id === "94303889-3db7-4667-a2be-27ddba5c08a1"
-                    ? FILIPINO_MODULE_DATA.unit1.contentSections
-                    : activeModule.contentSections;
+                  const sections = activeModule.contentSections;
                   return sections?.map((sec, i) => (
                     <div key={i} className="space-y-3 pt-2">
                       <h3 className="text-lg md:text-xl font-bold font-heading text-slate-900">
-                        {sec.heading}
+                        {tx(sec.heading)}
                       </h3>
                       <p className="text-muted-foreground leading-relaxed">
-                        {sec.body}
+                        {tx(sec.body)}
                       </p>
                       {sec.keyTakeaway && (
                         <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
-                          <strong>{isFilipino ? "Pangunahing Aral:" : "Practical Takeaway:"}</strong> {sec.keyTakeaway}
+                          <strong>{tx("Practical Takeaway:")}</strong> {tx(sec.keyTakeaway)}
                         </div>
                       )}
                     </div>
@@ -431,7 +412,7 @@ const ModuleSelection = () => {
                   className="rounded-xl flex items-center gap-2 text-xs font-bold border-emerald-300 text-emerald-800 bg-white hover:bg-emerald-50 hover:text-emerald-950 transition-colors shadow-xs"
                 >
                   <FileText className="h-4 w-4 text-emerald-600" />
-                  <span>Open Full Learning Guide</span>
+                  <span>{tx("Original PDF (English)")}</span>
                   <ExternalLink className="h-3.5 w-3.5 text-muted-foreground ml-0.5" />
                 </Button>
 
@@ -440,23 +421,19 @@ const ModuleSelection = () => {
                     variant="ghost"
                     onClick={() => setActiveModule(null)}
                     className="text-xs font-semibold"
-                  >
-                    Close
-                  </Button>
+                  >{tx("Close")}</Button>
                   <Button
                     className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm"
                     asChild
                   >
                     <Link to="/quiz?start=true">
-                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                      Take Quiz on this Topic
-                    </Link>
+                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />{tx("Take Quiz on this Topic")}</Link>
                   </Button>
                 </div>
               </div>
 
-            </div>
-          </div>
+            </DialogContent>
+          </Dialog>
         )}
 
         <Footer />

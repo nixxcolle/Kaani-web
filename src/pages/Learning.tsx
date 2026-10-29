@@ -1,3 +1,4 @@
+import { useText } from "@/lib/translate";
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { 
@@ -16,7 +17,7 @@ import {
   Layers,
   ChevronRight,
   Languages
-} from "lucide-react";
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,9 +26,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { DEFAULT_LEARNING_MODULES, LearningModule } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
-import { useLanguage, FILIPINO_MODULE_DATA } from "@/lib/i18n";
+import { useLanguage } from "@/lib/language-context";
 
 const Learning = () => {
+  const tx = useText();
   const { language, toggleLanguage, isFilipino, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -43,13 +45,13 @@ const Learning = () => {
 
         if (!error && data && data.length > 0) {
           // Keep only modules with actual file data or file name
-          const valid = data.filter((m: any) => 
+          const valid = data.filter((m) => 
             (m.file_data && m.file_data.trim().length > 0) || 
             (m.file_name && m.file_name.trim().length > 0)
           );
 
           const list: LearningModule[] = [...DEFAULT_LEARNING_MODULES];
-          valid.forEach((mod: any) => {
+          valid.forEach((mod) => {
             const idx = list.findIndex(e => e.id === mod.id);
             if (idx >= 0) {
               if (mod.file_data) list[idx].file_data = mod.file_data;
@@ -169,23 +171,23 @@ const Learning = () => {
   const filteredModules = useMemo(() => {
     return modules.filter((module) => {
       const matchesSearch = 
-        module.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        module.description.toLowerCase().includes(searchQuery.toLowerCase());
+        `${module.title} ${tx(module.title)}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        `${module.description} ${tx(module.description)}`.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === "All" || module.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [modules, searchQuery, selectedCategory]);
+  }, [modules, searchQuery, selectedCategory, tx]);
 
   const getDifficultyBadge = (difficulty: string) => {
     switch (difficulty) {
       case "Beginner":
-        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100 text-xs">Beginner</Badge>;
+        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100 text-xs">{tx("Beginner")}</Badge>;
       case "Intermediate":
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100 text-xs">Intermediate</Badge>;
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100 text-xs">{tx("Intermediate")}</Badge>;
       case "Advanced":
-        return <Badge className="bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 text-xs">Advanced</Badge>;
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 text-xs">{tx("Advanced")}</Badge>;
       default:
-        return <Badge variant="outline">{difficulty}</Badge>;
+        return <Badge variant="outline">{tx(difficulty)}</Badge>;
     }
   };
 
@@ -200,28 +202,26 @@ const Learning = () => {
             <div className="flex flex-wrap items-center justify-center gap-2">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-kaani-primary text-xs md:text-sm font-bold border border-emerald-200">
                 <BookOpen className="h-4 w-4" />
-                <span>{isFilipino ? "Sentro ng Kaalaman at Pagsasanay" : "Comprehensive Knowledge Center"}</span>
+                <span>{tx("Comprehensive Knowledge Center")}</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={toggleLanguage}
                 className="h-8 rounded-full border-emerald-300 bg-white/90 hover:bg-emerald-50 text-emerald-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs"
-                title="Isalin sa Filipino / Switch to English"
+                title={tx("Isalin sa Filipino / Switch to English")}
               >
                 <Languages className="h-3.5 w-3.5 text-emerald-700" />
-                <span>{isFilipino ? "English Version" : "Isalin sa Filipino"}</span>
+                <span>{isFilipino ? "Switch to English" : "Isalin sa Filipino"}</span>
               </Button>
             </div>
 
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
-              {isFilipino ? "Sentro ng Kaalaman (Learning Hub)" : "Learning Hub"}
+              {tx("Learning Hub")}
             </h1>
 
             <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              {isFilipino 
-                ? "Pag-aralan ang wastong pamamahala sa agrikultura at pangisdaan gamit ang mga praktikal na modyul, teknikal na plano, at kaalaman ng komunidad."
-                : "Master agriculture and fisheries through practical modules, technical blueprints, and community-driven learning resources."}
+              {tx("Master agriculture and fisheries through practical modules, technical blueprints, and community-driven learning resources.")}
             </p>
             
             {/* Search Bar */}
@@ -230,7 +230,7 @@ const Learning = () => {
               <Input 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search courses, topics, or skills (e.g. soil, fish, RAS)..." 
+                placeholder={tx("Search courses, topics, or skills (e.g. soil, fish, RAS)...")} 
                 className="pl-11 pr-4 py-6 rounded-2xl border-emerald-200 bg-white shadow-sm text-sm focus-visible:ring-emerald-500"
               />
             </div>
@@ -247,7 +247,7 @@ const Learning = () => {
                       : "bg-white text-slate-600 hover:bg-emerald-50 border border-slate-200"
                   }`}
                 >
-                  {cat}
+                  {tx(cat)}
                 </button>
               ))}
             </div>
@@ -259,12 +259,8 @@ const Learning = () => {
       <section className="py-16 bg-white border-b border-emerald-100/60">
         <div className="container px-4">
           <div className="text-center max-w-2xl mx-auto mb-12 space-y-2">
-            <span className="text-xs uppercase font-extrabold tracking-wider text-kaani-primary bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-              Open Educational Resources
-            </span>
-            <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
-              Why Choose Our Learning Platform?
-            </h2>
+            <span className="text-xs uppercase font-extrabold tracking-wider text-kaani-primary bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">{tx("Open Educational Resources")}</span>
+            <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">{tx("Why Choose Our Learning Platform?")}</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
@@ -279,9 +275,9 @@ const Learning = () => {
                     <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-50 text-kaani-primary flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-200 border border-emerald-100">
                       <Icon className="h-7 w-7" />
                     </div>
-                    <CardTitle className="text-lg font-bold font-heading text-kaani-dark">{feature.title}</CardTitle>
+                    <CardTitle className="text-lg font-bold font-heading text-kaani-dark">{tx(feature.title)}</CardTitle>
                     <CardDescription className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                      {feature.description}
+                      {tx(feature.description)}
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -297,21 +293,17 @@ const Learning = () => {
           <div className="max-w-3xl mx-auto text-center mb-12 space-y-3">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-kaani-primary bg-emerald-100/70 px-3 py-1 rounded-full border border-emerald-200">
               <Layers className="h-3.5 w-3.5" />
-              <span>Modular Curriculum</span>
+              <span>{tx("Modular Curriculum")}</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
-              Featured Learning Modules
-            </h2>
-            <p className="text-sm md:text-base text-muted-foreground">
-              Select a module to access step-by-step instructions, key takeaways, and field checklists.
-            </p>
+            <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">{tx("Featured Learning Modules")}</h2>
+            <p className="text-sm md:text-base text-muted-foreground">{tx("Select a module to access step-by-step instructions, key takeaways, and field checklists.")}</p>
           </div>
 
           {filteredModules.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-3xl max-w-md mx-auto border border-dashed border-slate-200 p-8">
               <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-60" />
-              <p className="font-bold text-slate-700">No modules match your query</p>
-              <p className="text-xs text-muted-foreground mt-1">Try resetting the filter or searching for another keyword.</p>
+              <p className="font-bold text-slate-700">{tx("No modules match your query")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{tx("Try resetting the filter or searching for another keyword.")}</p>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -320,9 +312,7 @@ const Learning = () => {
                   setSearchQuery("");
                   setSelectedCategory("All");
                 }}
-              >
-                Clear Search
-              </Button>
+              >{tx("Clear Search")}</Button>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -334,27 +324,26 @@ const Learning = () => {
                   <CardHeader className="p-6 pb-4">
                     <div className="flex items-center justify-between mb-3">
                       <Badge variant="outline" className="text-xs font-semibold border-emerald-200 text-kaani-primary bg-emerald-50/50">
-                        {module.category}
+                        {tx(module.category)}
                       </Badge>
-                      {getDifficultyBadge(module.difficulty)}
+                      {tx(getDifficultyBadge(module.difficulty))}
                     </div>
                     <CardTitle className="text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors">
-                      {module.title}
+                      {tx(module.title)}
                     </CardTitle>
                     <CardDescription className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                      {module.description}
+                      {tx(module.description)}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-6 pt-2 space-y-4">
                     <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-slate-100 pt-3">
                       <span className="flex items-center gap-1">
                         <BookOpen className="h-3.5 w-3.5 text-kaani-primary" />
-                        {module.file_name ? "Official PDF Guide" : "Interactive Guide"}
+                        {tx(module.file_name ? "Official PDF Guide" : "Interactive Guide")}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5 text-kaani-primary" />
-                        {module.readTimeMinutes} min read
-                      </span>
+                        {tx(module.readTimeMinutes)}{tx(" min read")}</span>
                     </div>
 
                     <Button 
@@ -362,7 +351,7 @@ const Learning = () => {
                       asChild
                     >
                       <Link to="/modules">
-                        <span>Start Learning</span>
+                        <span>{tx("Start Learning")}</span>
                         <ChevronRight className="h-4 w-4 ml-1.5 transition-transform group-hover:translate-x-1" />
                       </Link>
                     </Button>
@@ -379,15 +368,9 @@ const Learning = () => {
         <div className="container px-4">
           <div className="max-w-5xl mx-auto space-y-10">
             <div className="text-center space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-kaani-primary bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                Curated Roadmaps
-              </span>
-              <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">
-                Tailored Learning Pathways
-              </h2>
-              <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
-                Access curated topics matched to your specific role in agriculture or coastal management.
-              </p>
+              <span className="text-xs font-bold uppercase tracking-wider text-kaani-primary bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">{tx("Curated Roadmaps")}</span>
+              <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">{tx("Tailored Learning Pathways")}</h2>
+              <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">{tx("Access curated topics matched to your specific role in agriculture or coastal management.")}</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
@@ -404,17 +387,17 @@ const Learning = () => {
                           <Icon className={`h-6 w-6 ${path.accent}`} />
                         </div>
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/80 border border-current">
-                          {path.badge}
+                          {tx(path.badge)}
                         </span>
                       </div>
 
-                      <h3 className="text-lg font-bold font-heading mb-3">{path.role}</h3>
+                      <h3 className="text-lg font-bold font-heading mb-3">{tx(path.role)}</h3>
 
                       <ul className="space-y-2.5 text-xs md:text-sm mb-6">
                         {path.topics.map((topic, tidx) => (
                           <li key={tidx} className="flex items-start gap-2">
                             <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${path.accent}`} />
-                            <span className="opacity-90 leading-snug">{topic}</span>
+                            <span className="opacity-90 leading-snug">{tx(topic)}</span>
                           </li>
                         ))}
                       </ul>
@@ -425,7 +408,7 @@ const Learning = () => {
                       asChild
                     >
                       <Link to={`/modules?category=${encodeURIComponent(path.categoryParam)}`}>
-                        <span>{path.linkText}</span>
+                        <span>{tx(path.linkText)}</span>
                         <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
                       </Link>
                     </Button>
@@ -443,20 +426,15 @@ const Learning = () => {
           <Card className="max-w-4xl mx-auto rounded-3xl bg-gradient-hero text-white p-8 md:p-12 text-center shadow-elevated">
             <CardContent className="p-0 space-y-4">
               <BookOpen className="h-10 w-10 text-emerald-200 mx-auto" />
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading">
-                Ready to Start Your Learning Journey?
-              </h2>
-              <p className="text-sm sm:text-base text-emerald-50/90 max-w-xl mx-auto leading-relaxed">
-                Join farmers, municipal fisherfolk, and students across the country who are building resilient harvests through accessible knowledge.
-              </p>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading">{tx("Ready to Start Your Learning Journey?")}</h2>
+              <p className="text-sm sm:text-base text-emerald-50/90 max-w-xl mx-auto leading-relaxed">{tx("Join farmers, municipal fisherfolk, and students across the country who are building resilient harvests through accessible knowledge.")}</p>
               <div className="pt-2">
                 <Button 
                   size="lg" 
                   className="bg-white hover:bg-emerald-50 text-kaani-primary font-bold px-8 py-6 rounded-2xl shadow-md text-base"
                   asChild
                 >
-                  <Link to="/modules">
-                    Browse All Learning Modules <ArrowRight className="h-4 w-4 ml-2" />
+                  <Link to="/modules">{tx("Browse All Learning Modules ")}<ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
                 </Button>
               </div>

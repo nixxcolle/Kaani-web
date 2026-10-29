@@ -197,8 +197,6 @@ export const DEFAULT_QUIZ_QUESTIONS: QuizQuestion[] = [
     image_url: null,
   },
   {
-  },
-  {
     id: "q-physio-12",
     category: "Fisheries & Marine",
     difficulty: "Medium",

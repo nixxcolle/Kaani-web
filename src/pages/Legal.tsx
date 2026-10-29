@@ -1,3 +1,4 @@
+import { useText } from "@/lib/translate";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
@@ -14,7 +15,7 @@ import {
   Building2, 
   Search,
   BookOpen
-} from "lucide-react";
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const Legal = () => {
+  const tx = useText();
   const [activeChecklistTab, setActiveChecklistTab] = useState<number>(0);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
@@ -167,16 +169,12 @@ const Legal = () => {
           <div className="max-w-4xl mx-auto text-center space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-100 text-purple-900 text-xs md:text-sm font-bold border border-purple-200">
               <Scale className="h-4 w-4 text-purple-700" />
-              <span>Philippine Agricultural & Marine Jurisprudence</span>
+              <span>{tx("Philippine Agricultural & Marine Jurisprudence")}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
-              Legal Guidance Hub
-            </h1>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">{tx("Legal Guidance Hub")}</h1>
 
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Understand your rights under RA 8550/10654, navigate municipal permits, and ensure hassle-free regulatory compliance with interactive checklists.
-            </p>
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">{tx("Understand your rights under RA 8550/10654, navigate municipal permits, and ensure hassle-free regulatory compliance with interactive checklists.")}</p>
           </div>
         </div>
       </section>
@@ -189,23 +187,22 @@ const Legal = () => {
               <div>
                 <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-800 bg-purple-50 px-3 py-1 rounded-full mb-1">
                   <CheckSquare className="h-3.5 w-3.5 text-purple-600" />
-                  <span>Interactive Compliance Checklist</span>
+                  <span>{tx("Interactive Compliance Checklist")}</span>
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold font-heading text-slate-900">
-                  {currentList.title}
+                  {tx(currentList.title)}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{currentList.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{tx(currentList.description)}</p>
               </div>
 
               {/* Progress counter */}
               <div className="flex items-center gap-3 shrink-0">
                 <div className="text-right">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold">Completed</span>
-                  <p className="text-base font-extrabold text-purple-900">{completedCount} of {currentList.items.length}</p>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold">{tx("Completed")}</span>
+                  <p className="text-base font-extrabold text-purple-900">{tx(completedCount)}{tx(" of ")}{tx(currentList.items.length)}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full border-4 border-purple-200 flex items-center justify-center font-bold text-xs text-purple-900">
-                  {Math.round(progressPercent)}%
-                </div>
+                  {tx(Math.round(progressPercent))}{tx("%")}</div>
               </div>
             </div>
 
@@ -221,7 +218,7 @@ const Legal = () => {
                       : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-purple-50"
                   }`}
                 >
-                  {list.title.split("(")[0]}
+                  {tx(list.title.split("(")[0])}
                 </button>
               ))}
             </div>
@@ -245,7 +242,7 @@ const Legal = () => {
                     }`}>
                       {isChecked && <CheckCircle2 className="h-4 w-4" />}
                     </div>
-                    <span className="text-sm md:text-base leading-snug">{item.label}</span>
+                    <span className="text-sm md:text-base leading-snug">{tx(item.label)}</span>
                   </div>
                 );
               })}
@@ -254,8 +251,8 @@ const Legal = () => {
             {progressPercent === 100 && (
               <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center animate-in fade-in duration-300">
                 <CheckCircle2 className="h-6 w-6 text-emerald-600 mx-auto mb-1" />
-                <h4 className="text-sm font-bold text-emerald-900">All Requirements Checked!</h4>
-                <p className="text-xs text-emerald-700">You are ready to submit your documentation to {currentList.agency}.</p>
+                <h4 className="text-sm font-bold text-emerald-900">{tx("All Requirements Checked!")}</h4>
+                <p className="text-xs text-emerald-700">{tx("You are ready to submit your documentation to ")}{tx(currentList.agency)}{tx(".")}</p>
               </div>
             )}
           </div>
@@ -267,12 +264,8 @@ const Legal = () => {
         <div className="container px-4">
           <div className="max-w-5xl mx-auto space-y-8">
             <div className="text-center space-y-2">
-              <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
-                Official Regulatory Agencies & Portals
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Verified links to Philippine government agencies governing agriculture and fisheries.
-              </p>
+              <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">{tx("Official Regulatory Agencies & Portals")}</h2>
+              <p className="text-sm text-muted-foreground">{tx("Verified links to Philippine government agencies governing agriculture and fisheries.")}</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -288,12 +281,12 @@ const Legal = () => {
                     <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 text-slate-300 text-xs font-mono border-b border-slate-800">
                       <div className="flex items-center gap-2 truncate">
                         <span className="w-2 h-2 rounded-full bg-cyan-400 inline-block animate-pulse"></span>
-                        <span className="text-slate-400">https://</span>
-                        <span className="text-white font-bold tracking-tight truncate">{agency.domain}</span>
+                        <span className="text-slate-400">{tx("https://")}</span>
+                        <span className="text-white font-bold tracking-tight truncate">{tx(agency.domain)}</span>
                       </div>
                       <span className="flex items-center gap-1 text-[10px] text-cyan-300 bg-cyan-950/90 px-2.5 py-0.5 rounded-full border border-cyan-800 shrink-0 font-medium">
                         <ExternalLink className="h-3 w-3" />
-                        <span>Official Portal</span>
+                        <span>{tx("Official Portal")}</span>
                       </span>
                     </div>
 
@@ -306,14 +299,14 @@ const Legal = () => {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs uppercase font-black tracking-wider text-white">
-                              {agency.domain.replace("www.", "").toUpperCase()}
+                              {tx(agency.domain.replace("www.", "").toUpperCase())}
                             </span>
                             <Badge className={`text-[9px] py-0 px-1.5 uppercase font-bold ${agency.badgeBg}`}>
-                              {agency.tag}
+                              {tx(agency.tag)}
                             </Badge>
                           </div>
                           <p className="text-[11px] text-white/75 line-clamp-1 mt-0.5 font-medium">
-                            {agency.subTitle}
+                            {tx(agency.subTitle)}
                           </p>
                         </div>
                       </div>
@@ -327,24 +320,24 @@ const Legal = () => {
                     <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
                       <div className="space-y-2">
                         <h3 className="text-lg md:text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors leading-snug">
-                          {agency.title}
+                          {tx(agency.title)}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          {agency.role}
+                          {tx(agency.role)}
                         </p>
                       </div>
 
                       <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <span>Statutory Scope: <strong className="text-slate-900">Official National & Municipal Jurisdiction</strong></span>
+                        <span>{tx("Statutory Scope: ")}<strong className="text-slate-900">{tx("Official National & Municipal Jurisdiction")}</strong></span>
                       </div>
                     </div>
 
                     {/* Footer Action */}
                     <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-kaani-primary transition-colors">
                       <span className="flex items-center gap-1.5">
-                        <span>Open Agency Portal</span>
-                        <span className="text-slate-400 font-normal">({agency.domain})</span>
+                        <span>{tx("Open Agency Portal")}</span>
+                        <span className="text-slate-400 font-normal">{tx("(")}{tx(agency.domain)}{tx(")")}</span>
                       </span>
                       <ExternalLink className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
                     </div>
@@ -361,21 +354,15 @@ const Legal = () => {
         <div className="container px-4">
           <div className="max-w-4xl mx-auto rounded-3xl bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-8 md:p-12 text-center space-y-4 shadow-elevated">
             <Scale className="h-10 w-10 text-emerald-300 mx-auto" />
-            <h3 className="text-2xl md:text-3xl font-extrabold font-heading">
-              Need Help Navigating Fisheries & Agricultural Policies?
-            </h3>
-            <p className="text-sm md:text-base text-emerald-100 max-w-xl mx-auto leading-relaxed">
-              Access our curated learning modules and statutory guides for municipal waters, licensing protocols, and environmental compliance.
-            </p>
+            <h3 className="text-2xl md:text-3xl font-extrabold font-heading">{tx("Need Help Navigating Fisheries & Agricultural Policies?")}</h3>
+            <p className="text-sm md:text-base text-emerald-100 max-w-xl mx-auto leading-relaxed">{tx("Access our curated learning modules and statutory guides for municipal waters, licensing protocols, and environmental compliance.")}</p>
             <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 size="lg"
                 className="bg-white hover:bg-emerald-50 text-emerald-950 font-bold rounded-2xl px-8 py-6 shadow-md text-base"
                 asChild
               >
-                <Link to="/learning">
-                  Browse Educational Modules
-                </Link>
+                <Link to="/learning">{tx("Browse Educational Modules")}</Link>
               </Button>
             </div>
           </div>

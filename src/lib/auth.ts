@@ -1,4 +1,6 @@
-import { supabase } from './supabase';
+import type { User as AuthUser } from '@supabase/supabase-js';
+import { supabase, authRedirectUrl } from './supabase';
+import { authErrorMessage, authRetryDelay, authRetryScope } from './auth-errors';
 
 export interface User {
   id: string;
@@ -6,324 +8,100 @@ export interface User {
   name: string;
   role: 'user';
   created_at: string;
-  last_seen_at?: string;
-  is_active?: boolean;
   is_guest?: boolean;
 }
+export interface LoginData { email: string; password: string }
+export interface SignupData extends LoginData { name: string; role: 'user' }
+type AuthResult = { success: boolean; user?: User; error?: string; confirmationRequired?: boolean; retryAfterSeconds?: number; retryScope?: 'email' | 'all' };
 
-export interface SignupData {
-  email: string;
-  password: string;
-  name: string;
-  role: 'user';
-}
+const failedAuth = (error: unknown, fallback: string): AuthResult => ({
+  success: false,
+  error: authErrorMessage(error, fallback),
+  retryAfterSeconds: authRetryDelay(error),
+  retryScope: authRetryScope(error),
+});
 
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
-// Local mock user database key
-const LOCAL_USERS_KEY = 'kaani_local_registered_users';
-
-function generateValidUUID(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-function getLocalUsers(): Array<User & { password_hash: string }> {
+function rememberUser(user: User): User {
   try {
-    const raw = localStorage.getItem(LOCAL_USERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+    sessionStorage.removeItem('kaani_guest');
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('isAuthenticated', 'true');
+  } catch { /* Supabase owns the session; optional display caches must not reject a valid login. */ }
+  window.dispatchEvent(new Event('auth-change'));
+  return user;
 }
 
-function saveLocalUsers(users: Array<User & { password_hash: string }>) {
+const profile = (user: AuthUser): User => ({
+  id: user.id, email: user.email || '',
+  name: user.user_metadata?.name || user.email?.split('@')[0] || 'Learner',
+  role: 'user', created_at: user.created_at,
+});
+
+export async function signUp(data: SignupData): Promise<AuthResult> {
   try {
-    localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
-  } catch (e) {
-    console.warn("Could not save to localStorage", e);
-  }
-}
-
-// Hash password using Web Crypto API
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-// Sign up a new user (with automatic local fallback if Supabase is offline)
-export async function signUp(data: SignupData): Promise<{ success: boolean; user?: User; error?: string }> {
-  try {
-    const cleanEmail = data.email.trim().toLowerCase();
-    const cleanName = data.name.trim() || cleanEmail.split('@')[0];
-    const passwordHash = await hashPassword(data.password);
-    const now = new Date().toISOString();
-    const newId = generateValidUUID();
-
-    // Try Supabase first
-    try {
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('email', cleanEmail)
-        .maybeSingle();
-
-      if (existingUser) {
-        return { success: false, error: 'A member account with this email already exists' };
-      }
-
-      const { data: newUser, error: insertError } = await supabase
-        .from('users')
-        .insert({
-          id: newId,
-          email: cleanEmail,
-          password_hash: passwordHash,
-          name: cleanName,
-          role: data.role,
-          is_active: true,
-          created_at: now,
-          last_seen_at: now,
-          updated_at: now
-        })
-        .select()
-        .single();
-
-      if (!insertError && newUser) {
-        const { password_hash, ...userWithoutPassword } = newUser;
-        // Keep in local cache for offline redundancy
-        const localUsers = getLocalUsers().filter(u => u.email.toLowerCase() !== cleanEmail);
-        localUsers.push({ ...(userWithoutPassword as User), password_hash: passwordHash });
-        saveLocalUsers(localUsers);
-
-        return { success: true, user: userWithoutPassword as User };
-      } else if (insertError) {
-        console.warn("Supabase insert warning, saving locally:", insertError);
-      }
-    } catch (remoteError) {
-      console.warn("Supabase unreachable during signup, creating local offline account:", remoteError);
-    }
-
-    // Local Fallback
-    const localUsers = getLocalUsers();
-    if (localUsers.some(u => u.email.toLowerCase() === cleanEmail)) {
-      return { success: false, error: 'User with this email already registered locally' };
-    }
-
-    const newUserRecord: User & { password_hash: string } = {
-      id: newId,
-      email: cleanEmail,
-      name: cleanName,
-      role: data.role,
-      created_at: now,
-      last_seen_at: now,
-      is_active: true,
-      password_hash: passwordHash
-    };
-
-    localUsers.push(newUserRecord);
-    saveLocalUsers(localUsers);
-
-    const { password_hash, ...userResult } = newUserRecord;
-    return { success: true, user: userResult as User };
-
+    const { data: result, error } = await supabase.auth.signUp({
+      email: data.email.trim().toLowerCase(), password: data.password,
+      options: { data: { name: data.name.trim(), role: 'user' }, emailRedirectTo: authRedirectUrl },
+    });
+    if (error) return failedAuth(error, 'Sign up failed. Please try again.');
+    if (!result.user) return { success: false, error: 'Sign up failed. Please try again.' };
+    if (!result.session) return { success: true, confirmationRequired: true };
+    return { success: true, user: rememberUser(profile(result.user)) };
   } catch (error) {
-    console.error('Signup error:', error);
-    return { success: false, error: 'An unexpected error occurred during signup.' };
+    return failedAuth(error, 'Unable to connect. Check your connection and try again.');
   }
 }
 
-// Login user (with automatic database activity recording and local fallback)
-export async function login(data: LoginData, role: 'user' = 'user'): Promise<{ success: boolean; user?: User; error?: string }> {
+export async function login(data: LoginData): Promise<AuthResult> {
   try {
-    const cleanEmail = data.email.trim().toLowerCase();
-    const passwordHash = await hashPassword(data.password);
-    const now = new Date().toISOString();
-
-    // 1. Try Supabase first
-    try {
-      const { data: remoteUser, error: findError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', cleanEmail)
-        .eq('role', role)
-        .maybeSingle();
-
-      if (!findError && remoteUser) {
-        if (remoteUser.password_hash === passwordHash) {
-          // Update last_seen_at, is_active, and updated_at in Supabase database
-          try {
-            await supabase
-              .from('users')
-              .update({
-                last_seen_at: now,
-                is_active: true,
-                updated_at: now
-              })
-              .eq('id', remoteUser.id);
-          } catch (updateErr) {
-            console.warn("Could not record last_seen_at in Supabase:", updateErr);
-          }
-
-          const { password_hash, ...userWithoutPassword } = remoteUser;
-          const updatedUser: User = {
-            ...userWithoutPassword,
-            last_seen_at: now,
-            is_active: true
-          };
-
-          // Cache locally
-          const localUsers = getLocalUsers().filter(u => u.email.toLowerCase() !== cleanEmail);
-          localUsers.push({ ...updatedUser, password_hash: passwordHash });
-          saveLocalUsers(localUsers);
-
-          return { success: true, user: updatedUser };
-        } else {
-          return { success: false, error: 'Invalid email or password.' };
-        }
-      }
-    } catch (remoteError) {
-      console.warn("Supabase query failed during login, checking local accounts:", remoteError);
-    }
-
-    // 2. Local account lookup
-    const localUsers = getLocalUsers();
-    const matched = localUsers.find(u => u.email.toLowerCase() === cleanEmail);
-    if (matched) {
-      if (matched.password_hash === passwordHash) {
-        matched.last_seen_at = now;
-        matched.is_active = true;
-        saveLocalUsers(localUsers);
-
-        // Try background sync to Supabase if not yet present
-        try {
-          await supabase.from('users').upsert({
-            id: matched.id,
-            email: matched.email,
-            password_hash: matched.password_hash,
-            name: matched.name,
-            role: matched.role,
-            is_active: true,
-            created_at: matched.created_at,
-            last_seen_at: now,
-            updated_at: now
-          });
-        } catch {
-          // non-blocking
-        }
-
-        const { password_hash, ...safeUser } = matched;
-        return { success: true, user: safeUser as User };
-      } else {
-        return { success: false, error: 'Invalid password. Please check your credentials.' };
-      }
-    }
-
-    // 3. First-time offline fallback or seamless registration
-    const fallbackId = generateValidUUID();
-    const fallbackUser: User = {
-      id: fallbackId,
-      email: cleanEmail,
-      name: cleanEmail.split('@')[0],
-      role: 'user',
-      created_at: now,
-      last_seen_at: now,
-      is_active: true
-    };
-    
-    // Save locally
-    localUsers.push({ ...fallbackUser, password_hash: passwordHash });
-    saveLocalUsers(localUsers);
-
-    // Try background sync to Supabase
-    try {
-      await supabase.from('users').insert({
-        id: fallbackId,
-        email: cleanEmail,
-        password_hash: passwordHash,
-        name: fallbackUser.name,
-        role: 'user',
-        is_active: true,
-        created_at: now,
-        last_seen_at: now,
-        updated_at: now
-      });
-    } catch {
-      // offline silent
-    }
-
-    return { success: true, user: fallbackUser };
-
+    const { data: result, error } = await supabase.auth.signInWithPassword({
+      email: data.email.trim().toLowerCase(), password: data.password,
+    });
+    if (error) return { ...failedAuth(error, 'Sign-in failed. Please try again.'), confirmationRequired: error.code === 'email_not_confirmed' };
+    if (!result.user || !result.session) return { success: false, error: 'Sign-in failed. Please try again.' };
+    return { success: true, user: rememberUser(profile(result.user)) };
   } catch (error) {
-    console.error('Login error:', error);
-    return { success: false, error: 'An unexpected error occurred during login.' };
+    return failedAuth(error, 'Unable to connect. Check your connection and try again.');
   }
 }
 
-// User Logout with database status cleanup
-export async function logout(currentUser?: User | null): Promise<void> {
+export async function resendConfirmation(email: string): Promise<AuthResult> {
+  if (!email.trim()) return { success: false, error: 'Enter your email address first.' };
   try {
-    const user = currentUser || (() => {
-      try {
-        const stored = localStorage.getItem('user');
-        return stored ? JSON.parse(stored) : null;
-      } catch {
-        return null;
-      }
-    })();
-
-    if (user && !user.is_guest && user.id) {
-      const now = new Date().toISOString();
-      // Update remote record in Supabase
-      try {
-        await supabase
-          .from('users')
-          .update({
-            is_active: false,
-            last_seen_at: now,
-            updated_at: now
-          })
-          .eq('id', user.id);
-      } catch (e) {
-        console.warn("Could not update logout state in Supabase:", e);
-      }
-    }
-  } catch (err) {
-    console.warn("Error during logout cleanup:", err);
-  } finally {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user');
-    window.dispatchEvent(new Event('auth-change'));
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase(), options: { emailRedirectTo: authRedirectUrl } });
+    return error ? failedAuth(error, 'Confirmation email could not be sent. Please try again.') : { success: true };
+  } catch (error) {
+    return failedAuth(error, 'Unable to connect. Check your connection and try again.');
   }
 }
 
-// Instant Guest Login for frictionless quiz experience
-export function createGuestSession(guestName: string = "Agri Learner"): User {
-  const guestUser: User = {
-    id: "guest-" + Math.random().toString(36).substring(2, 8),
-    email: `guest_${Date.now()}@kaani.local`,
-    name: guestName,
-    role: "user",
-    created_at: new Date().toISOString(),
-    last_seen_at: new Date().toISOString(),
-    is_active: true,
-    is_guest: true
-  };
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const guest = JSON.parse(sessionStorage.getItem("kaani_guest") || "null");
+    if (guest?.is_guest && typeof guest.id === "string" && guest.id.startsWith("guest-")) return guest;
+  } catch { /* Ignore invalid guest data. */ }
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data.user) return profile(data.user);
+  } catch { /* Guest access remains available offline. */ }
+  return null;
+}
 
-  localStorage.setItem('user', JSON.stringify(guestUser));
+export async function logout(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+  if (error) await supabase.auth.signOut({ scope: 'local' });
+  sessionStorage.removeItem('kaani_guest');
+  localStorage.removeItem('user');
+  localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('kaani_local_registered_users');
+  window.dispatchEvent(new Event('auth-change'));
+}
+
+export function createGuestSession(name = 'Guest Learner'): User {
+  const user: User = { id: 'guest-' + crypto.randomUUID(), email: '', name, role: 'user', created_at: new Date().toISOString(), is_guest: true };
+  sessionStorage.setItem('kaani_guest', JSON.stringify(user));
+  localStorage.setItem('user', JSON.stringify(user));
   localStorage.setItem('isAuthenticated', 'true');
   window.dispatchEvent(new Event('auth-change'));
-  return guestUser;
+  return user;
 }

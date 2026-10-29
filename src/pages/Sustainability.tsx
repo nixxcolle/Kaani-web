@@ -1,3 +1,4 @@
+import { useText } from "@/lib/translate";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
@@ -15,7 +16,7 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2
-} from "lucide-react";
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const Sustainability = () => {
+  const tx = useText();
   const [selectedFilter, setSelectedFilter] = useState<string>("All");
 
   // Interactive Impact Calculator state
@@ -164,16 +166,12 @@ const Sustainability = () => {
           <div className="max-w-4xl mx-auto text-center space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-kaani-primary text-xs md:text-sm font-bold border border-emerald-200">
               <Leaf className="h-4 w-4" />
-              <span>Climate-Smart Agriculture & Fisheries</span>
+              <span>{tx("Climate-Smart Agriculture & Fisheries")}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">
-              Sustainability Hub
-            </h1>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight">{tx("Sustainability Hub")}</h1>
 
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Explore eco-friendly aquaculture, circular soil regeneration, and zero-emission irrigation solutions reshaping livelihoods.
-            </p>
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">{tx("Explore eco-friendly aquaculture, circular soil regeneration, and zero-emission irrigation solutions reshaping livelihoods.")}</p>
           </div>
         </div>
       </section>
@@ -186,22 +184,19 @@ const Sustainability = () => {
               <div>
                 <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full mb-1">
                   <Calculator className="h-3.5 w-3.5" />
-                  <span>Interactive Estimator</span>
+                  <span>{tx("Interactive Estimator")}</span>
                 </div>
-                <h3 className="text-xl font-bold font-heading text-slate-900">
-                  Solar Drip Irrigation Impact Estimator
-                </h3>
+                <h3 className="text-xl font-bold font-heading text-slate-900">{tx("Solar Drip Irrigation Impact Estimator")}</h3>
               </div>
-              <Badge className="bg-emerald-600 text-white w-fit">Live Calculation</Badge>
+              <Badge className="bg-emerald-600 text-white w-fit">{tx("Live Calculation")}</Badge>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Farmland Size (Hectares): <span className="text-kaani-primary text-base font-extrabold">{farmHectares} ha</span>
+                  <label htmlFor="sustainability-field-1" className="text-xs font-bold text-slate-700 block mb-1">{tx("Farmland Size (Hectares): ")}<span className="text-kaani-primary text-base font-extrabold">{tx(farmHectares)}{tx(" ha")}</span>
                   </label>
-                  <input
+                  <input id="sustainability-field-1"
                     type="range"
                     min="1"
                     max="10"
@@ -211,14 +206,14 @@ const Sustainability = () => {
                     className="w-full accent-emerald-600"
                   />
                   <div className="flex justify-between text-[11px] text-muted-foreground mt-1">
-                    <span>1 ha</span>
-                    <span>5 ha</span>
-                    <span>10 ha</span>
+                    <span>{tx("1 ha")}</span>
+                    <span>{tx("5 ha")}</span>
+                    <span>{tx("10 ha")}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Irrigation Method</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">{tx("Irrigation Method")}</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setIrrigationType("drip")}
@@ -227,9 +222,7 @@ const Sustainability = () => {
                           ? "bg-kaani-primary text-white border-kaani-primary shadow-xs"
                           : "bg-slate-50 text-slate-700 border-slate-200"
                       }`}
-                    >
-                      Solar Drip (Eco)
-                    </button>
+                    >{tx("Solar Drip (Eco)")}</button>
                     <button
                       onClick={() => setIrrigationType("flood")}
                       className={`p-2.5 rounded-xl text-xs font-bold border transition-all ${
@@ -237,9 +230,7 @@ const Sustainability = () => {
                           ? "bg-slate-700 text-white border-slate-700 shadow-xs"
                           : "bg-slate-50 text-slate-700 border-slate-200"
                       }`}
-                    >
-                      Traditional Furrow
-                    </button>
+                    >{tx("Traditional Furrow")}</button>
                   </div>
                 </div>
               </div>
@@ -247,19 +238,17 @@ const Sustainability = () => {
               {/* Output Cards */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-4 rounded-2xl bg-sky-50 border border-sky-100 flex flex-col justify-between">
-                  <div className="text-xs text-sky-800 font-bold uppercase tracking-wider">Est. Water Saved</div>
+                  <div className="text-xs text-sky-800 font-bold uppercase tracking-wider">{tx("Est. Water Saved")}</div>
                   <div className="text-2xl font-black font-heading text-sky-950 mt-2">
-                    {(estimatedWaterSavedLiters / 1000).toLocaleString()} m³
-                  </div>
-                  <div className="text-[11px] text-sky-700 mt-1">Per harvest season</div>
+                    {tx((estimatedWaterSavedLiters / 1000).toLocaleString())}{tx(" m³")}</div>
+                  <div className="text-[11px] text-sky-700 mt-1">{tx("Per harvest season")}</div>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col justify-between">
-                  <div className="text-xs text-emerald-800 font-bold uppercase tracking-wider">Est. Diesel Saved</div>
-                  <div className="text-2xl font-black font-heading text-emerald-950 mt-2">
-                    ₱{estimatedFuelSavedPhp.toLocaleString()}
+                  <div className="text-xs text-emerald-800 font-bold uppercase tracking-wider">{tx("Est. Diesel Saved")}</div>
+                  <div className="text-2xl font-black font-heading text-emerald-950 mt-2">{tx("₱")}{tx(estimatedFuelSavedPhp.toLocaleString())}
                   </div>
-                  <div className="text-[11px] text-emerald-700 mt-1">Pumping fuel savings</div>
+                  <div className="text-[11px] text-emerald-700 mt-1">{tx("Pumping fuel savings")}</div>
                 </div>
               </div>
             </div>
@@ -273,12 +262,8 @@ const Sustainability = () => {
           <div className="max-w-5xl mx-auto space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
-                  Featured Sustainable Technologies
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Proven low-impact innovations ready for practical deployment.
-                </p>
+                <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">{tx("Featured Sustainable Technologies")}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{tx("Proven low-impact innovations ready for practical deployment.")}</p>
               </div>
 
               {/* Filter Pills */}
@@ -293,7 +278,7 @@ const Sustainability = () => {
                         : "bg-white text-muted-foreground border-slate-200 hover:bg-emerald-50"
                     }`}
                   >
-                    {cat}
+                    {tx(cat)}
                   </button>
                 ))}
               </div>
@@ -312,63 +297,62 @@ const Sustainability = () => {
                     <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 text-slate-300 text-xs font-mono border-b border-slate-800">
                       <div className="flex items-center gap-2 truncate">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-                        <span className="text-slate-400">https://</span>
-                        <span className="text-white font-bold tracking-tight truncate">{item.domain}</span>
+                        <span className="text-slate-400">{tx("https://")}</span>
+                        <span className="text-white font-bold tracking-tight truncate">{tx(item.domain)}</span>
                       </div>
                       <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/90 px-2.5 py-0.5 rounded-full border border-emerald-800 shrink-0 font-medium">
                         <ExternalLink className="h-3 w-3" />
-                        <span>External Source</span>
+                        <span>{tx("External Source")}</span>
                       </span>
                     </div>
 
                     {/* Authentic Brand Header Banner */}
-                    <div className={`p-5 bg-gradient-to-r ${item.brandTheme} text-white flex items-center justify-between gap-4`}>
+                    <div className={`p-5 bg-gradient-to-r ${item.brandTheme} text-white flex flex-wrap items-center justify-between gap-4`}>
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
                           <Icon className="h-5 w-5" />
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="text-xs uppercase font-black tracking-wider text-white">
-                              {item.brandName}
+                              {tx(item.brandName)}
                             </span>
                             <Badge className={`text-[9px] py-0 px-1.5 uppercase font-bold ${item.badgeBg}`}>
-                              {item.category}
+                              {tx(item.category)}
                             </Badge>
                           </div>
                           <p className="text-[11px] text-white/70 line-clamp-1 mt-0.5 font-medium">
-                            {item.brandTagline}
+                            {tx(item.brandTagline)}
                           </p>
                         </div>
                       </div>
 
                       <Badge className="text-[10px] bg-white text-slate-900 hover:bg-white font-bold shrink-0">
-                        {item.impact} Impact
-                      </Badge>
+                        {tx(item.impact)}{tx(" Impact")}</Badge>
                     </div>
 
                     {/* Card Content */}
                     <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
                       <div className="space-y-2">
                         <h3 className="text-lg md:text-xl font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors leading-snug">
-                          {item.title}
+                          {tx(item.title)}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          {item.description}
+                          {tx(item.description)}
                         </p>
                       </div>
 
                       <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <span>Metric: <strong className="text-emerald-800">{item.metrics}</strong></span>
+                        <span>{tx("Metric: ")}<strong className="text-emerald-800">{tx(item.metrics)}</strong></span>
                       </div>
                     </div>
 
                     {/* Footer Action */}
                     <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-kaani-primary transition-colors">
                       <span className="flex items-center gap-1.5">
-                        <span>Read full article on</span>
-                        <span className="font-extrabold text-slate-900 group-hover:text-kaani-primary">{item.brandName}</span>
+                        <span>{tx("Read full article on")}</span>
+                        <span className="font-extrabold text-slate-900 group-hover:text-kaani-primary">{tx(item.brandName)}</span>
                       </span>
                       <ExternalLink className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
                     </div>
@@ -385,12 +369,8 @@ const Sustainability = () => {
         <div className="container px-4">
           <div className="max-w-5xl mx-auto space-y-8">
             <div className="text-center space-y-2">
-              <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">
-                Real-World Impact Stories
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Documented initiatives creating lasting transformation in coastal and farming communities.
-              </p>
+              <h2 className="text-2xl md:text-3xl font-extrabold font-heading text-kaani-dark">{tx("Real-World Impact Stories")}</h2>
+              <p className="text-sm text-muted-foreground">{tx("Documented initiatives creating lasting transformation in coastal and farming communities.")}</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
@@ -402,7 +382,7 @@ const Sustainability = () => {
                 >
                   {/* Domain Bar */}
                   <div className="flex items-center justify-between px-3.5 py-2 bg-slate-900 text-slate-300 text-[11px] font-mono border-b border-slate-800">
-                    <span className="text-white font-bold truncate">https://{story.domain}</span>
+                    <span className="text-white font-bold truncate">{tx("https://")}{tx(story.domain)}</span>
                     <ExternalLink className="h-3 w-3 text-slate-400 shrink-0" />
                   </div>
 
@@ -410,30 +390,30 @@ const Sustainability = () => {
                   <div className={`p-4 bg-gradient-to-r ${story.themeBg} text-white space-y-1`}>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-[11px] font-black uppercase tracking-wider text-white">
-                        {story.brandName}
+                        {tx(story.brandName)}
                       </span>
                       <Badge className={`text-[9px] py-0 px-1.5 uppercase font-bold ${story.badgeBg}`}>
-                        {story.tag}
+                        {tx(story.tag)}
                       </Badge>
                     </div>
                     <p className="text-[11px] text-white/70 flex items-center gap-1 font-medium">
-                      <Calendar className="h-3 w-3" /> Published {story.date} • {story.location}
+                      <Calendar className="h-3 w-3" />{tx(" Published ")}{tx(story.date)}{tx(" • ")}{tx(story.location)}
                     </p>
                   </div>
 
                   {/* Body Content */}
                   <div className="p-5 space-y-2 flex-1">
                     <h3 className="text-base font-bold font-heading text-slate-900 group-hover:text-kaani-primary transition-colors leading-snug">
-                      {story.title}
+                      {tx(story.title)}
                     </h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      {story.description}
+                      {tx(story.description)}
                     </p>
                   </div>
 
                   {/* Action Link Footer */}
                   <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-kaani-primary transition-colors">
-                    <span>Open Case Study ↗</span>
+                    <span>{tx("Open Case Study ↗")}</span>
                     <ExternalLink className="h-3.5 w-3.5" />
                   </div>
                 </div>
@@ -443,20 +423,15 @@ const Sustainability = () => {
             {/* Sustainability Action CTA */}
             <div className="p-8 md:p-10 rounded-3xl bg-gradient-hero text-white text-center space-y-4 shadow-elevated">
               <Leaf className="h-8 w-8 text-emerald-300 mx-auto" />
-              <h3 className="text-2xl md:text-3xl font-bold font-heading">
-                Adopt Climate-Smart Practices in Your Community
-              </h3>
-              <p className="text-sm md:text-base text-emerald-50/90 max-w-xl mx-auto leading-relaxed">
-                Explore our comprehensive training materials and field-tested ecological practices to maximize resilience and yield.
-              </p>
+              <h3 className="text-2xl md:text-3xl font-bold font-heading">{tx("Adopt Climate-Smart Practices in Your Community")}</h3>
+              <p className="text-sm md:text-base text-emerald-50/90 max-w-xl mx-auto leading-relaxed">{tx("Explore our comprehensive training materials and field-tested ecological practices to maximize resilience and yield.")}</p>
               <div className="pt-2">
                 <Button 
                   size="lg" 
                   className="bg-white hover:bg-emerald-50 text-kaani-primary font-bold rounded-2xl px-8 py-6 shadow-md text-sm md:text-base"
                   asChild
                 >
-                  <Link to="/learning">
-                    Explore Learning Resources <ArrowRight className="h-4 w-4 ml-2" />
+                  <Link to="/learning">{tx("Explore Learning Resources ")}<ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
                 </Button>
               </div>

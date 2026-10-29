@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 
 /**
  * AnimatedBackground renders lightweight ambient elements (soft leaves and aquatic bubbles)
@@ -6,10 +5,10 @@ import { useMemo } from 'react';
  * Respects prefers-reduced-motion.
  */
 export default function AnimatedBackground() {
-  const elements = useMemo(() => {
+  const elements = (() => {
     const items = [];
     // 5 subtle ambient leaves
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       items.push({
         type: 'leaf',
         id: `leaf-${i}`,
@@ -22,7 +21,7 @@ export default function AnimatedBackground() {
       });
     }
     // 6 gentle aquatic bubbles
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 3; i++) {
       items.push({
         type: 'bubble',
         id: `bubble-${i}`,
@@ -35,10 +34,10 @@ export default function AnimatedBackground() {
       });
     }
     return items;
-  }, []);
+  })();
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+    <div className="ambient-background fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
       {/* Soft Ambient Mesh Glows */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-emerald-100/35 rounded-full blur-3xl" />
       <div className="absolute top-1/3 -right-32 w-96 h-96 bg-sky-100/30 rounded-full blur-3xl" />

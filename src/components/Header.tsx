@@ -1,3 +1,4 @@
+import { useText } from "@/lib/translate";
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -14,10 +15,10 @@ import {
   ShoppingBag,
   ExternalLink,
   Languages
-} from "lucide-react";
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/lib/i18n";
-import { logout } from "@/lib/auth";
+import { useLanguage } from "@/lib/language-context";
+import { logout, getCurrentUser } from "@/lib/auth";
 
 interface UserProfile {
   id?: string;
@@ -27,7 +28,8 @@ interface UserProfile {
 }
 
 const Header = () => {
-  const { language, toggleLanguage, t } = useLanguage();
+  const tx = useText();
+  const { language, setLanguage, toggleLanguage, t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,31 +38,24 @@ const Header = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const readUser = () => {
-      const authStatus = localStorage.getItem("isAuthenticated");
-      const storedUser = localStorage.getItem("user");
-      if (authStatus === "true" && storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-        } catch {
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
+    let mounted = true;
+    const readUser = async () => {
+      const current = await getCurrentUser();
+      if (mounted) setUser(current);
     };
 
     readUser();
     window.addEventListener("storage", readUser);
     window.addEventListener("auth-change", readUser);
     return () => {
+      mounted = false;
       window.removeEventListener("storage", readUser);
       window.removeEventListener("auth-change", readUser);
     };
   }, []);
 
   const handleLogout = async () => {
-    await logout(user as any);
+    await logout();
     setUser(null);
     navigate("/");
   };
@@ -90,12 +85,12 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-emerald-100/90 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] transition-all">
-      <div className="container mx-auto flex h-20 items-center justify-between px-4 lg:px-8">
+      <div className="container mx-auto flex h-[76px] items-center justify-between px-4 lg:px-8">
         {/* Brand Identity / Logo on Left */}
         <Link 
           to="/" 
           className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded-xl"
-          aria-label="Kaani Web Home"
+          aria-label={tx("Kaani Web Home")}
         >
           {/* Logo badge with leaf and aquatic waves */}
           <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-md shadow-emerald-900/10 ring-1 ring-emerald-500/20 group-hover:scale-105 group-hover:shadow-emerald-900/20 transition-all duration-300">
@@ -127,19 +122,16 @@ const Header = () => {
             </svg>
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-extrabold tracking-tight text-emerald-900 uppercase font-heading leading-tight group-hover:text-emerald-700 transition-colors">
-              Kaani <span className="text-emerald-600 font-black">Web</span>
+            <span className="text-xl font-extrabold tracking-tight text-emerald-900 uppercase font-heading leading-tight group-hover:text-emerald-700 transition-colors">{tx("Kaani ")}<span className="text-emerald-600 font-black">{tx("Web")}</span>
             </span>
-            <span className="text-[11px] font-semibold tracking-wider text-emerald-800/80 leading-none">
-              Learn &bull; Sell &bull; Grow &bull; Innovate
-            </span>
+            <span className="text-[11px] font-semibold tracking-wider text-emerald-800/80 leading-none">{tx("Learn • Sell • Grow • Innovate")}</span>
           </div>
         </Link>
 
         {/* Right side navigation buttons for Desktop */}
-        <div className="hidden lg:flex items-center space-x-1 xl:space-x-2">
+        <div className="hidden xl:flex items-center space-x-1">
           {/* Main Sections Navigation */}
-          <nav className="flex items-center space-x-1 xl:space-x-1.5" aria-label="Main Navigation">
+          <nav className="flex items-center space-x-1 xl:space-x-1.5" aria-label={tx("Main Navigation")}>
             {navItems.map((item) => {
               const active = isActive(item.href);
               const Icon = item.icon;
@@ -155,7 +147,7 @@ const Header = () => {
                   aria-current={active ? "page" : undefined}
                 >
                   <Icon className={`h-4 w-4 ${active ? "text-emerald-200" : "text-emerald-700"}`} />
-                  <span>{item.name}</span>
+                  <span>{tx(item.name)}</span>
                 </Link>
               );
             })}
@@ -166,8 +158,8 @@ const Header = () => {
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="p-2 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-emerald-50/80 transition-colors"
-              title="Search Products & Guides"
-              aria-label="Search"
+              title={tx("Search Products & Guides")}
+              aria-label={tx("Search")}
             >
               <Search className="h-4.5 w-4.5 text-slate-700" />
             </button>
@@ -180,16 +172,14 @@ const Header = () => {
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600" />
                     <input
                       type="text"
-                      placeholder="Search market or guides..."
+                      placeholder={tx("Search market or guides...")}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       autoFocus
                       className="w-full pl-9 pr-3 py-1.5 text-sm bg-emerald-50/50 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     />
                   </div>
-                  <Button type="submit" size="sm" className="bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl px-3 text-xs">
-                    Go
-                  </Button>
+                  <Button type="submit" size="sm" className="bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl px-3 text-xs">{tx("Go")}</Button>
                 </form>
               </div>
             )}
@@ -198,14 +188,14 @@ const Header = () => {
           {/* Language Switcher (EN | FIL) */}
           <button
             onClick={toggleLanguage}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200/90 bg-emerald-50/60 hover:bg-emerald-100/70 text-xs font-bold text-emerald-950 transition-all shadow-2xs active:scale-95"
-            title={language === "en" ? "Isalin sa Filipino" : "Switch to English"}
-            aria-label="Toggle language between English and Filipino"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200/90 bg-emerald-50/60 hover:bg-emerald-100/70 text-sm font-bold text-emerald-950 transition-all shadow-2xs active:scale-95"
+            title={tx(language === "en" ? "Isalin sa Filipino" : "Switch to English")}
+            aria-label={tx("Toggle language between English and Filipino")}
           >
             <Languages className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
-            <span className={language === "en" ? "text-emerald-900 font-extrabold" : "text-slate-400 font-normal"}>EN</span>
-            <span className="text-slate-300">/</span>
-            <span className={language === "fil" ? "text-emerald-900 font-extrabold" : "text-slate-400 font-normal"}>FIL</span>
+            <span className={language === "en" ? "text-emerald-900 font-extrabold" : "text-slate-400 font-normal"}>{tx("EN")}</span>
+            <span className="text-slate-300">{tx("/")}</span>
+            <span className={language === "fil" ? "text-emerald-900 font-extrabold" : "text-slate-400 font-normal"}>{tx("FIL")}</span>
           </button>
 
           {/* Auth Actions (Login & Register) */}
@@ -216,13 +206,13 @@ const Header = () => {
                   {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="h-3.5 w-3.5" />}
                 </div>
                 <span className="text-xs font-bold text-emerald-950 max-w-[100px] truncate">
-                  {user.name || "Learner"}
+                  {tx(user.name || "Learner")}
                 </span>
                 <button
                   onClick={handleLogout}
-                  title="Sign out"
+                  title={tx("Sign out")}
                   className="p-1 rounded-full text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                  aria-label="Logout"
+                  aria-label={tx("Logout")}
                 >
                   <LogOut className="h-3.5 w-3.5" />
                 </button>
@@ -233,13 +223,13 @@ const Header = () => {
                   to="/auth"
                   className="px-3.5 py-1.5 text-sm font-semibold text-emerald-900 hover:text-emerald-700 hover:bg-emerald-50/80 rounded-xl border border-transparent transition-colors"
                 >
-                  {t("nav.login", "Login")}
+                  {tx(t("nav.login", "Login"))}
                 </Link>
                 <Link
                   to="/role-selection"
                   className="px-4 py-1.5 text-sm font-bold text-white bg-emerald-800 hover:bg-emerald-900 shadow-xs hover:shadow-md rounded-xl transition-all active:scale-95"
                 >
-                  {t("nav.register", "Register")}
+                  {tx(t("nav.register", "Register"))}
                 </Link>
               </>
             )}
@@ -247,20 +237,22 @@ const Header = () => {
         </div>
 
         {/* Mobile menu trigger */}
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex items-center gap-2 xl:hidden">
           <button
             onClick={toggleLanguage}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-xs font-bold text-emerald-950 shadow-2xs"
-            title="Toggle Language"
-            aria-label="Language switch"
+            title={tx("Toggle Language")}
+            aria-label={tx("Language switch")}
           >
             <Languages className="h-3.5 w-3.5 text-emerald-700" />
-            <span>{language.toUpperCase()}</span>
+            <span>{tx(language.toUpperCase())}</span>
           </button>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-navigation"
             className="p-2 text-emerald-900 rounded-xl hover:bg-emerald-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600"
-            aria-label="Toggle navigation menu"
+            aria-label={tx("Toggle navigation menu")}
           >
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -269,13 +261,13 @@ const Header = () => {
 
       {/* Responsive Mobile Navigation Drawer */}
       {isMenuOpen && (
-        <div className="lg:hidden border-t border-emerald-100 bg-white/98 backdrop-blur-md px-5 py-5 space-y-4 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="xl:hidden border-t border-emerald-100 bg-white/98 backdrop-blur-md px-5 py-5 space-y-4 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
           {/* Mobile search bar */}
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search className="absolute left-3.5 top-3 h-4 w-4 text-emerald-600" />
             <input
               type="text"
-              placeholder="Search products, guides, laws..."
+              placeholder={tx("Search products, guides, laws...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-20 py-2 text-sm bg-emerald-50/60 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"
@@ -284,13 +276,11 @@ const Header = () => {
               type="submit"
               size="sm"
               className="absolute right-1 top-1 h-7 bg-emerald-800 text-white rounded-lg px-2.5 text-xs font-semibold"
-            >
-              Search
-            </Button>
+            >{tx("Search")}</Button>
           </form>
 
           {/* Navigation Links */}
-          <nav className="space-y-1.5" aria-label="Mobile Navigation">
+          <nav className="space-y-1.5" id="mobile-navigation" aria-label={tx("Mobile Navigation")}>
             {navItems.map((item) => {
               const active = isActive(item.href);
               const Icon = item.icon;
@@ -307,14 +297,12 @@ const Header = () => {
                 >
                   <div className="flex items-center gap-3">
                     <Icon className={`h-5 w-5 ${active ? "text-emerald-200" : "text-emerald-700"}`} />
-                    <span>{item.name}</span>
+                    <span>{tx(item.name)}</span>
                   </div>
                   {item.isMarket && (
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                       active ? "bg-emerald-700 text-emerald-100" : "bg-emerald-100 text-emerald-800"
-                    }`}>
-                      Fresh
-                    </span>
+                    }`}>{tx("Fresh")}</span>
                   )}
                 </Link>
               );
@@ -324,24 +312,20 @@ const Header = () => {
           {/* Language Switcher Row in Mobile Menu */}
           <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/80 border border-emerald-200/80">
             <span className="text-xs font-bold text-emerald-950 flex items-center gap-2">
-              <Languages className="h-4 w-4 text-emerald-700" />
-              Wika / Language
-            </span>
+              <Languages className="h-4 w-4 text-emerald-700" />{tx("Wika / Language")}</span>
             <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-emerald-200 text-xs font-bold shadow-2xs">
               <button
                 type="button"
                 onClick={() => setLanguage("en")}
+                aria-pressed={language === "en"}
                 className={`px-3 py-1 rounded-lg transition-colors ${language === "en" ? "bg-emerald-800 text-white font-extrabold shadow-2xs" : "text-slate-600 hover:text-emerald-900"}`}
-              >
-                English
-              </button>
+              >{tx("English")}</button>
               <button
                 type="button"
                 onClick={() => setLanguage("fil")}
+                aria-pressed={language === "fil"}
                 className={`px-3 py-1 rounded-lg transition-colors ${language === "fil" ? "bg-emerald-800 text-white font-extrabold shadow-2xs" : "text-slate-600 hover:text-emerald-900"}`}
-              >
-                Filipino
-              </button>
+              >{tx("Filipino")}</button>
             </div>
           </div>
 
@@ -354,8 +338,8 @@ const Header = () => {
                     {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="h-4 w-4" />}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-emerald-950">{user.name}</p>
-                    <p className="text-xs text-emerald-700">{user.is_guest ? "Guest Learner" : "Verified Member"}</p>
+                    <p className="text-sm font-bold text-emerald-950">{tx(user.name)}</p>
+                    <p className="text-xs text-emerald-700">{tx(user.is_guest ? "Guest Learner" : "Verified Member")}</p>
                   </div>
                 </div>
                 <Button
@@ -367,9 +351,7 @@ const Header = () => {
                   }}
                   className="text-xs text-rose-600 border-rose-200 hover:bg-rose-50 rounded-xl"
                 >
-                  <LogOut className="h-3.5 w-3.5 mr-1" />
-                  Logout
-                </Button>
+                  <LogOut className="h-3.5 w-3.5 mr-1" />{tx("Logout")}</Button>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
@@ -379,14 +361,14 @@ const Header = () => {
                   asChild
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Link to="/auth">Login</Link>
+                  <Link to="/auth">{tx("Login")}</Link>
                 </Button>
                 <Button
                   className="rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold shadow-xs"
                   asChild
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Link to="/role-selection">Register</Link>
+                  <Link to="/role-selection">{tx("Register")}</Link>
                 </Button>
               </div>
             )}

@@ -1,5 +1,6 @@
 // Lightweight Canvas Confetti generator without external dependencies
 export function triggerConfetti() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const canvas = document.createElement('canvas');
   canvas.style.position = 'fixed';
   canvas.style.top = '0';

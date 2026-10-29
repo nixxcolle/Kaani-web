@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+import { useText } from "@/lib/translate";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,16 +8,22 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { LanguageProvider } from "@/lib/i18n";
 import Index from "./pages/Index";
-import Learning from "./pages/Learning";
-import Quiz from "./pages/Quiz";
-import ModuleSelection from "./pages/ModuleSelection";
-import RoleSelection from "./pages/RoleSelection";
-import Auth from "./pages/Auth";
-import Sustainability from "./pages/Sustainability";
-import Legal from "./pages/Legal";
-import Terms from "./pages/Terms";
-import Market from "./pages/Market";
-import NotFound from "./pages/NotFound";
+const Learning = lazy(() => import("./pages/Learning"));
+const Quiz = lazy(() => import("./pages/Quiz"));
+const ModuleSelection = lazy(() => import("./pages/ModuleSelection"));
+const RoleSelection = lazy(() => import("./pages/RoleSelection"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Sustainability = lazy(() => import("./pages/Sustainability"));
+const Legal = lazy(() => import("./pages/Legal"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Market = lazy(() => import("./pages/Market"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+import RouteExperience from "./components/RouteExperience";
+
+const LoadingPage = () => {
+  const tx = useText();
+  return <div role="status" className="min-h-[60vh] flex items-center justify-center p-8 text-emerald-900">{tx("Loading page...")}</div>;
+};
 
 const queryClient = new QueryClient();
 
@@ -26,7 +34,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <RouteExperience />
           <AnimatedBackground />
+          <div className="site-content relative z-10">
+          <Suspense fallback={<LoadingPage />}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/market" element={<Market />} />
@@ -41,6 +52,8 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
+          </div>
         </BrowserRouter>
       </LanguageProvider>
     </TooltipProvider>

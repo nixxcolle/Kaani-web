@@ -61,7 +61,7 @@ export function hasUserReportedProduct(productId: string, reporterIdentifier?: s
       return true;
     }
     // Also check if reported recently in this browser
-    return true;
+    return !reporterIdentifier;
   });
 }
 
@@ -86,7 +86,7 @@ export async function submitMarketReport(input: {
   const alreadyReported = reports.find(
     (r) =>
       r.productId === input.productId &&
-      (r.reporterUserId === input.reporterUserId ||
+      ((!!input.reporterUserId && r.reporterUserId === input.reporterUserId) ||
         (input.reporterContact && r.reporterContact === input.reporterContact) ||
         // If unauthenticated, prevent duplicate report with same category in last 24h
         (r.category === input.category &&
@@ -115,13 +115,10 @@ export async function submitMarketReport(input: {
     actionTaken: "none",
   };
 
-  // Save to localStorage
-  reports.unshift(newReport);
-  saveStoredReports(reports);
 
   // Attempt remote Supabase insert if available without breaking
   try {
-    await supabase.from("market_reports").insert({
+    const { error } = await supabase.from("market_reports").insert({
       id: newReport.id,
       product_id: newReport.productId,
       product_name: newReport.productName,
@@ -129,12 +126,18 @@ export async function submitMarketReport(input: {
       category: newReport.category,
       description: newReport.description,
       reporter_user_id: newReport.reporterUserId || null,
+      reporter_name: newReport.reporterName,
+      reporter_contact: newReport.reporterContact,
       status: "pending",
       created_at: newReport.createdAt,
     });
+    if (error) throw error;
+    reports.unshift(newReport);
+    saveStoredReports(reports);
   } catch (err) {
     // Graceful offline fallback
-    console.info("Report saved locally; remote sync not available or table not configured.", err);
+    console.warn("Report delivery failed", err);
+    return { success: false, message: "Report could not be sent. Please check your connection and try again." };
   }
 
   return { success: true, report: newReport };

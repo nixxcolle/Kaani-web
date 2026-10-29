@@ -1,3 +1,4 @@
+import { useText } from "@/lib/translate";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { 
@@ -35,7 +36,7 @@ import {
   FileText,
   AlertTriangle,
   Languages
-} from "lucide-react";
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -58,14 +59,11 @@ import {
   getProductEffectiveStatus
 } from "@/data/marketProducts";
 import { calculateCommission, recordMarketTransaction, formatPeso } from "@/lib/commission";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage } from "@/lib/language-context";
 import { 
   ReportCategory, 
   REPORT_CATEGORIES, 
   submitMarketReport, 
-  getStoredReports, 
-  updateReportStatus, 
-  MarketReport 
 } from "@/lib/reports";
 import heroBannerImg from "@/assets/images/market-hero-banner.jpg";
 
@@ -86,6 +84,7 @@ const prodImg = (src: string) =>
   src.startsWith("/assets/") ? `${import.meta.env.BASE_URL}${src.slice(1)}` : src;
 
 const Market = () => {
+  const tx = useText();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const initialCategory = searchParams.get("cat") || "All Products";
@@ -129,7 +128,7 @@ const Market = () => {
     }
   });
 
-  const { language, t, isFilipino } = useLanguage();
+  const { language, t } = useLanguage();
 
   // Modals & Flows
   const [contactProduct, setContactProduct] = useState<Product | null>(null);
@@ -152,19 +151,6 @@ const Market = () => {
   const [isRulesExpanded, setIsRulesExpanded] = useState(false);
   const [agreeRules, setAgreeRules] = useState(false);
   const [rulesError, setRulesError] = useState("");
-
-  // Admin Moderation State (Requirement 2)
-  const [isAdminReportsOpen, setIsAdminReportsOpen] = useState(false);
-  const [reportsList, setReportsList] = useState<MarketReport[]>(() => getStoredReports());
-  const [adminActionNotice, setAdminActionNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handleReportsUpdate = () => {
-      setReportsList(getStoredReports());
-    };
-    window.addEventListener("kaani-reports-updated", handleReportsUpdate);
-    return () => window.removeEventListener("kaani-reports-updated", handleReportsUpdate);
-  }, []);
 
   // Contact Form State
   const [buyerName, setBuyerName] = useState("");
@@ -219,18 +205,18 @@ const Market = () => {
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportProduct || !reportCategory) {
-      setReportError(isFilipino ? "Pumili ng kategorya ng reklamo." : "Please select a complaint category.");
+      setReportError("Please select a complaint category.");
       return;
     }
 
     setIsSubmittingReport(true);
     setReportError(null);
 
-    let currentUser: any = null;
+    let currentUser: { id?: string; name?: string; email?: string } | null = null;
     try {
       const stored = localStorage.getItem("user");
       if (stored) currentUser = JSON.parse(stored);
-    } catch {}
+    } catch { currentUser = null; }
 
     const res = await submitMarketReport({
       productId: reportProduct.id,
@@ -247,7 +233,7 @@ const Market = () => {
 
     if (res.success) {
       setReportSuccess(true);
-      setReportsList(getStoredReports());
+
       setTimeout(() => {
         setReportSuccess(false);
         setReportProduct(null);
@@ -257,48 +243,6 @@ const Market = () => {
     } else {
       setReportError(res.message || "Failed to submit report. Please try again.");
     }
-  };
-
-  const handleAdminAction = (
-    reportId: string,
-    action: "listing_hidden" | "warning_issued" | "dismissed",
-    productId?: string
-  ) => {
-    updateReportStatus(reportId, action === "dismissed" ? "dismissed" : "resolved", action);
-    
-    if (action === "listing_hidden" && productId) {
-      const updated = products.map((p) =>
-        p.id === productId ? { ...p, is_hidden: true, status: "Unavailable" as ProductStatus } : p
-      );
-      setProducts(updated);
-      try {
-        localStorage.setItem("kaani_market_products", JSON.stringify(updated));
-      } catch (e) {
-        console.error(e);
-      }
-      setAdminActionNotice("Listing has been hidden from the public marketplace.");
-    } else if (action === "warning_issued") {
-      setAdminActionNotice("Seller warning recorded in moderation log.");
-    } else {
-      setAdminActionNotice("Report has been dismissed.");
-    }
-
-    setReportsList(getStoredReports());
-    setTimeout(() => setAdminActionNotice(null), 3000);
-  };
-
-  const handleRestoreProduct = (productId: string) => {
-    const updated = products.map((p) =>
-      p.id === productId ? { ...p, is_hidden: false, status: "Available" as ProductStatus } : p
-    );
-    setProducts(updated);
-    try {
-      localStorage.setItem("kaani_market_products", JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
-    }
-    setAdminActionNotice("Listing has been restored to the marketplace.");
-    setTimeout(() => setAdminActionNotice(null), 3000);
   };
 
   // Filter products
@@ -329,17 +273,17 @@ const Market = () => {
       // Search match
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchesName = prod.name.toLowerCase().includes(q);
+        const matchesName = `${prod.name} ${tx(prod.name)}`.toLowerCase().includes(q);
         const matchesSeller = prod.seller.toLowerCase().includes(q);
         const matchesLocation = prod.location.toLowerCase().includes(q);
-        const matchesDesc = prod.description.toLowerCase().includes(q);
+        const matchesDesc = `${prod.description} ${tx(prod.description)}`.toLowerCase().includes(q);
         if (!matchesName && !matchesSeller && !matchesLocation && !matchesDesc) {
           return false;
         }
       }
       return true;
     });
-  }, [products, activeCategory, selectedLocation, selectedType, minPrice, maxPrice, searchQuery]);
+  }, [products, activeCategory, selectedLocation, selectedType, minPrice, maxPrice, searchQuery, tx]);
 
   // Sort products
   const sortedProducts = useMemo(() => {
@@ -418,16 +362,14 @@ const Market = () => {
       sellerName: contactProduct.seller,
       buyerName: buyerName.trim(),
       price: totalAmount,
+      idempotencyKey: `inquiry-${contactProduct.id}-${buyerPhone.trim()}-${orderQty}-${buyerMessage.trim()}`,
     });
 
+    const phone = contactProduct.sellerPhone.replace(/[^+\d]/g, "");
+    const message = `${buyerName.trim()} (${buyerPhone.trim()}): ${contactProduct.name}, ${orderQty} ${contactProduct.unit}. ${buyerMessage.trim()}`;
+    window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
     setContactSuccess(true);
-    setTimeout(() => {
-      setContactSuccess(false);
-      setContactProduct(null);
-      setBuyerName("");
-      setBuyerPhone("");
-      setBuyerMessage("");
-    }, 2200);
+
   };
 
   const handleSellSubmit = (e: React.FormEvent) => {
@@ -436,9 +378,7 @@ const Market = () => {
 
     if (!agreeRules) {
       setRulesError(
-        isFilipino
-          ? "Kailangan mong basahin at sang-ayunan ang Mga Tuntunin sa Pamilihan ng Kaani Web bago maglathala."
-          : "Please read and agree to the Kaani Web Marketplace Rules before publishing your listing."
+        "Please read and agree to the Kaani Web Marketplace Rules before publishing your listing."
       );
       return;
     }
@@ -451,8 +391,8 @@ const Market = () => {
     const created: Product = {
       id: `custom-${Date.now()}`,
       name: newProduct.name || "Local Harvest",
-      category: (newProduct.category as any) || "Vegetables & Fruits",
-      type: (newProduct.type as any) || "Farm Product",
+      category: (newProduct.category as Product["category"]) || "Vegetables & Fruits",
+      type: (newProduct.type as Product["type"]) || "Farm Product",
       seller: newProduct.seller || "Local Farmer",
       sellerPhone: newProduct.sellerPhone || "+63 900 000 0000",
       location: newProduct.location || "Catbalogan City, Samar",
@@ -472,12 +412,14 @@ const Market = () => {
     };
 
     const updatedList = [created, ...products];
-    setProducts(updatedList);
     try {
       localStorage.setItem("kaani_market_products", JSON.stringify(updatedList));
     } catch (err) {
       console.error(err);
+      setRulesError("The listing could not be saved. Try a smaller photo or free up browser storage.");
+      return;
     }
+    setProducts(updatedList);
 
     setSellSuccess(true);
     setAgreeRules(false);
@@ -514,7 +456,7 @@ const Market = () => {
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700"
           style={{ backgroundImage: `url(${heroBannerImg})` }}
           role="img"
-          aria-label="Philippine farmer and coastal fishery view"
+          aria-label={tx("Philippine farmer and coastal fishery view")}
         />
 
         {/* Gradient Overlay for crystal clear typography */}
@@ -530,16 +472,16 @@ const Market = () => {
                   <Sprout className="h-5 w-5 text-emerald-100" />
                 </div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight font-heading text-white">
-                  {t("market.title", "Kaani Market")}
+                  {tx(t("market.title", "Kaani Market"))}
                 </h1>
               </div>
 
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight leading-snug">
-                {t("market.heroHeadline", "Fresh from our farms and waters.")}
+                {tx(t("market.heroHeadline", "Fresh from our farms and waters."))}
               </h2>
 
               <p className="text-sm sm:text-base text-emerald-100/90 leading-relaxed max-w-xl">
-                {t("market.heroSub", "Discover local agricultural and fisheries products from farmers and fisherfolk. Supporting local livelihoods and sustainable food security.")}
+                {tx(t("market.heroSub", "Discover local agricultural and fisheries products from farmers and fisherfolk. Supporting local livelihoods and sustainable food security."))}
               </p>
 
               <div className="pt-2 flex flex-wrap items-center gap-3">
@@ -548,21 +490,20 @@ const Market = () => {
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl px-4 py-2 text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
                 >
                   <PlusCircle className="h-4 w-4" />
-                  {t("market.listHarvest", "List Your Harvest")}
+                  {tx(t("market.listHarvest", "List Your Harvest"))}
                 </Button>
                 <a
                   href="#featured-products"
                   className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold bg-white/15 hover:bg-white/25 text-white backdrop-blur-xs border border-white/20 transition-all"
                 >
-                  {t("market.browseCatalog", "Browse Catalog")} &darr;
-                </a>
+                  {tx(t("market.browseCatalog", "Browse Catalog"))}{tx(" ↓")}</a>
                 <button
                   type="button"
                   onClick={() => setIsRulesModalOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 backdrop-blur-xs border border-emerald-700/60 transition-all"
                 >
                   <FileText className="h-4 w-4 text-emerald-300" />
-                  <span>{isFilipino ? "Mga Tuntunin sa Pamilihan" : "Marketplace Rules"}</span>
+                  <span>{tx("Marketplace Rules")}</span>
                 </button>
               </div>
             </div>
@@ -570,12 +511,8 @@ const Market = () => {
             {/* Right Side Script Accent */}
             <div className="hidden md:flex flex-col items-end justify-center pr-4">
               <div className="rotate-[-2deg] text-right">
-                <span className="font-script text-3xl lg:text-4xl xl:text-5xl text-emerald-100 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] leading-tight block">
-                  Support Local
-                </span>
-                <span className="font-script text-3xl lg:text-4xl xl:text-5xl text-emerald-200 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] leading-tight block">
-                  Farmers and Fisherfolk
-                </span>
+                <span className="font-script text-3xl lg:text-4xl xl:text-5xl text-emerald-100 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] leading-tight block">{tx("Support Local")}</span>
+                <span className="font-script text-3xl lg:text-4xl xl:text-5xl text-emerald-200 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] leading-tight block">{tx("Farmers and Fisherfolk")}</span>
               </div>
             </div>
           </div>
@@ -593,9 +530,7 @@ const Market = () => {
             <div className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-2 pb-3 mb-3 border-b border-emerald-100/80">
                 <LayoutGrid className="h-5 w-5 text-emerald-700" />
-                <h3 className="font-extrabold text-base font-heading text-slate-800">
-                  Categories
-                </h3>
+                <h3 className="font-extrabold text-base font-heading text-slate-800">{tx("Categories")}</h3>
               </div>
 
               <div className="space-y-1.5">
@@ -618,13 +553,13 @@ const Market = () => {
                     >
                       <div className="flex items-center gap-2.5 truncate">
                         <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-emerald-200" : "text-emerald-700"}`} />
-                        <span className="truncate">{cat}</span>
+                        <span className="truncate">{tx(cat)}</span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0 ml-2">
                         <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                           isActive ? "bg-emerald-900/50 text-emerald-100" : "bg-slate-100 text-slate-500"
                         }`}>
-                          {count}
+                          {tx(count)}
                         </span>
                         <ChevronRight className={`h-4 w-4 ${isActive ? "text-emerald-200" : "text-slate-400"}`} />
                       </div>
@@ -638,7 +573,7 @@ const Market = () => {
             <div className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] space-y-3">
               <div className="flex items-center gap-2 text-slate-800 font-extrabold text-sm font-heading">
                 <MapPin className="h-4.5 w-4.5 text-emerald-700" />
-                <span>Location</span>
+                <span>{tx("Location")}</span>
               </div>
               <select
                 value={selectedLocation}
@@ -650,7 +585,7 @@ const Market = () => {
               >
                 {MARKET_LOCATIONS.map((loc) => (
                   <option key={loc} value={loc}>
-                    {loc}
+                    {tx(loc)}
                   </option>
                 ))}
               </select>
@@ -659,29 +594,27 @@ const Market = () => {
             {/* Price Range Filter Card */}
             <div className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] space-y-3">
               <div className="flex items-center gap-2 text-slate-800 font-extrabold text-sm font-heading">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
-                  &#8369;
-                </span>
-                <span>Price Range</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">{tx("₱ ")}</span>
+                <span>{tx("Price Range")}</span>
               </div>
 
               <form onSubmit={handleApplyPriceFilter} className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-500 block mb-1">Min (&#8369;)</label>
-                    <input
+                    <label htmlFor="market-field-1" className="text-[11px] font-semibold text-slate-500 block mb-1">{tx("Min (₱)")}</label>
+                    <input id="market-field-1"
                       type="number"
-                      placeholder="0"
+                      placeholder={tx("0")}
                       value={minPrice}
                       onChange={(e) => setMinPrice(e.target.value)}
                       className="w-full bg-[#f8faf9] border border-emerald-200 rounded-xl px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-500 block mb-1">Max (&#8369;)</label>
-                    <input
+                    <label htmlFor="market-field-2" className="text-[11px] font-semibold text-slate-500 block mb-1">{tx("Max (₱)")}</label>
+                    <input id="market-field-2"
                       type="number"
-                      placeholder="1000"
+                      placeholder={tx("1000")}
                       value={maxPrice}
                       onChange={(e) => setMaxPrice(e.target.value)}
                       className="w-full bg-[#f8faf9] border border-emerald-200 rounded-xl px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600"
@@ -693,19 +626,15 @@ const Market = () => {
                   <Button
                     type="submit"
                     className="flex-1 bg-[#0d533a] hover:bg-[#093c2a] text-white font-bold rounded-xl py-2 text-xs shadow-xs"
-                  >
-                    Apply Filters
-                  </Button>
+                  >{tx("Apply Filters")}</Button>
                   {(minPrice || maxPrice || activeCategory !== "All Products" || selectedLocation !== "All Locations" || searchQuery) && (
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleResetFilters}
                       className="px-2.5 rounded-xl border-emerald-200 text-slate-600 text-xs hover:bg-rose-50 hover:text-rose-600"
-                      title="Reset all filters"
-                    >
-                      Reset
-                    </Button>
+                      title={tx("Reset all filters")}
+                    >{tx("Reset")}</Button>
                   )}
                 </div>
               </form>
@@ -715,12 +644,10 @@ const Market = () => {
             <div className="rounded-2xl p-4 bg-emerald-50/80 border border-emerald-200/90 text-slate-800 space-y-2.5">
               <div className="flex items-center gap-2 text-emerald-950 font-bold text-xs">
                 <ShieldCheck className="h-4 w-4 text-emerald-700" />
-                <span>{isFilipino ? "Mga Tuntunin sa Pamilihan" : "Marketplace Rules"}</span>
+                <span>{tx("Marketplace Rules")}</span>
               </div>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                {isFilipino
-                  ? "Tinitiyak ng mga patakaran ng Kaani Web ang tapat na pagpepresyo, tamang timbang, at proteksyon sa mamimili at nagtitinda."
-                  : "All listings adhere to the Kaani Web Marketplace Rules for accurate listings, respectful trade, and verified local producers."}
+                {tx("All listings adhere to the Kaani Web Marketplace Rules for accurate listings, respectful trade, and verified local producers.")}
               </p>
               <div className="pt-1 flex flex-col gap-1.5">
                 <button
@@ -729,18 +656,8 @@ const Market = () => {
                   className="w-full py-1.5 px-2.5 rounded-xl bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-100/60 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
                 >
                   <FileText className="h-3.5 w-3.5 text-emerald-700" />
-                  <span>{isFilipino ? "Basahin ang Mga Tuntunin" : "View Marketplace Rules"}</span>
+                  <span>{tx("View Marketplace Rules")}</span>
                 </button>
-                {reportsList.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setIsAdminReportsOpen(true)}
-                    className="w-full py-1 px-2 text-[10px] text-slate-500 hover:text-amber-800 flex items-center justify-center gap-1 transition-colors"
-                  >
-                    <ShieldAlert className="h-3 w-3 text-amber-600" />
-                    <span>Review Reports ({reportsList.length})</span>
-                  </button>
-                )}
               </div>
             </div>
           </aside>
@@ -760,7 +677,7 @@ const Market = () => {
                       setSearchQuery(e.target.value);
                       setCurrentPage(1);
                     }}
-                    placeholder="Search for products (e.g. tilapia, tomatoes, rice...)"
+                    placeholder={tx("Search for products (e.g. tilapia, tomatoes, rice...)")}
                     className="w-full pl-10 pr-4 py-2.5 bg-[#f8faf9] border border-emerald-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
                   />
                   {searchQuery && (
@@ -775,9 +692,7 @@ const Market = () => {
                 <Button
                   onClick={() => setCurrentPage(1)}
                   className="bg-[#0d533a] hover:bg-[#093c2a] text-white font-bold rounded-xl px-6 py-2.5 text-sm shrink-0 shadow-xs"
-                >
-                  Search
-                </Button>
+                >{tx("Search")}</Button>
               </div>
             </div>
 
@@ -798,7 +713,7 @@ const Market = () => {
                       }`}
                     >
                       <Icon className={`h-3.5 w-3.5 ${isActive ? "text-emerald-200" : "text-emerald-700"}`} />
-                      <span>{cat}</span>
+                      <span>{tx(cat)}</span>
                     </button>
                   );
                 })}
@@ -808,50 +723,40 @@ const Market = () => {
             {/* Section Header: Featured Products & Sort Dropdown */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-b border-emerald-100/80 pb-3">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-900 font-heading">
-                  Featured Products
-                </h2>
-                <p className="text-xs text-slate-500 font-medium">
-                  Showing {sortedProducts.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedProducts.length)} of {sortedProducts.length} local items
-                </p>
+                <h2 className="text-xl font-extrabold text-slate-900 font-heading">{tx("Featured Products")}</h2>
+                <p className="text-xs text-slate-500 font-medium">{tx("Showing ")}{tx(sortedProducts.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0)}{tx(" - ")}{tx(Math.min(currentPage * ITEMS_PER_PAGE, sortedProducts.length))}{tx(" of ")}{tx(sortedProducts.length)}{tx(" local items")}</p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {/* Sector filter */}
                 <div className="flex items-center bg-white border border-emerald-100 rounded-xl p-1 text-xs font-semibold text-slate-600">
                   <button
                     onClick={() => { setSelectedType("All"); setCurrentPage(1); }}
                     className={`px-2.5 py-1 rounded-lg transition-colors ${selectedType === "All" ? "bg-emerald-800 text-white" : "hover:text-emerald-800"}`}
-                  >
-                    All
-                  </button>
+                  >{tx("All")}</button>
                   <button
                     onClick={() => { setSelectedType("Farm Product"); setCurrentPage(1); }}
                     className={`px-2.5 py-1 rounded-lg transition-colors ${selectedType === "Farm Product" ? "bg-emerald-800 text-white" : "hover:text-emerald-800"}`}
-                  >
-                    Farms
-                  </button>
+                  >{tx("Farms")}</button>
                   <button
                     onClick={() => { setSelectedType("Fishery Product"); setCurrentPage(1); }}
                     className={`px-2.5 py-1 rounded-lg transition-colors ${selectedType === "Fishery Product" ? "bg-emerald-800 text-white" : "hover:text-emerald-800"}`}
-                  >
-                    Fisheries
-                  </button>
+                  >{tx("Fisheries")}</button>
                 </div>
 
                 {/* Sort Dropdown */}
                 <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-                  <span className="hidden sm:inline">Sort by:</span>
+                  <span className="hidden sm:inline">{tx("Sort by:")}</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="bg-white border border-emerald-200 text-slate-800 rounded-xl px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   >
-                    <option value="newest">Newest First</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="stock">Highest Stock</option>
-                    <option value="name">Product Name (A-Z)</option>
+                    <option value="newest">{tx("Newest First")}</option>
+                    <option value="price-low">{tx("Price: Low to High")}</option>
+                    <option value="price-high">{tx("Price: High to Low")}</option>
+                    <option value="stock">{tx("Highest Stock")}</option>
+                    <option value="name">{tx("Product Name (A-Z)")}</option>
                   </select>
                 </div>
               </div>
@@ -863,16 +768,12 @@ const Market = () => {
                 <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto">
                   <Search className="h-8 w-8" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">No products found</h3>
-                <p className="text-sm text-slate-500 max-w-md mx-auto">
-                  We couldn't find any products matching your current filters. Try selecting a different category or clearing your search.
-                </p>
+                <h3 className="text-lg font-bold text-slate-800">{tx("No products found")}</h3>
+                <p className="text-sm text-slate-500 max-w-md mx-auto">{tx("We couldn't find any products matching your current filters. Try selecting a different category or clearing your search.")}</p>
                 <Button
                   onClick={handleResetFilters}
                   className="bg-[#0d533a] hover:bg-[#093c2a] text-white font-bold rounded-xl px-5"
-                >
-                  Clear All Filters
-                </Button>
+                >{tx("Clear All Filters")}</Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -892,7 +793,7 @@ const Market = () => {
                       <div className="relative aspect-[4/3] w-full overflow-hidden bg-emerald-50/50">
                         <img
                           src={prodImg(prod.image)}
-                          alt={prod.name}
+                          alt={tx(prod.name)}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             const img = e.target as HTMLImageElement;
@@ -904,7 +805,7 @@ const Market = () => {
                         {/* Verified Direct Trade Badge */}
                         <div className="absolute bottom-2 right-2 bg-emerald-950/75 backdrop-blur-xs text-emerald-200 text-[9px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
                           <ShieldCheck className="h-3 w-3 text-emerald-400" />
-                          <span>95% Seller Direct</span>
+                          <span>{tx("Illustrative 95% Seller Share")}</span>
                         </div>
 
                         {/* Top-Left Category Badge */}
@@ -918,7 +819,7 @@ const Market = () => {
                                 : "bg-teal-700 text-white"
                             }`}
                           >
-                            {prod.type}
+                            {tx(prod.type)}
                           </span>
                         </div>
 
@@ -930,18 +831,19 @@ const Market = () => {
                               e.stopPropagation();
                               handleOpenReport(prod);
                             }}
-                            className="w-7.5 h-7.5 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-rose-600 flex items-center justify-center shadow-xs transition-all active:scale-90"
-                            title={isFilipino ? "I-ulat ang listing na ito" : "Report this listing"}
-                            aria-label="Report listing"
+                            className="w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-rose-600 flex items-center justify-center shadow-xs transition-all active:scale-90"
+                            title={tx("Report this listing")}
+                            aria-label={tx("Report listing")}
                           >
                             <Flag className="h-3.5 w-3.5" />
                           </button>
                           <button
                             type="button"
                             onClick={(e) => toggleFavorite(prod.id, e)}
-                            className="w-7.5 h-7.5 rounded-full bg-white/90 hover:bg-white text-slate-600 hover:text-rose-600 flex items-center justify-center shadow-xs transition-all active:scale-90"
-                            title={isFav ? "Remove from favorites" : "Save to favorites"}
-                            aria-label="Favorite"
+                            className="w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-600 hover:text-rose-600 flex items-center justify-center shadow-xs transition-all active:scale-90"
+                            title={tx(isFav ? "Remove from favorites" : "Save to favorites")}
+                            aria-label={tx(isFav ? "Remove from favorites" : "Save to favorites")}
+                            aria-pressed={isFav}
                           >
                             <Heart
                               className={`h-4 w-4 transition-colors ${
@@ -960,41 +862,41 @@ const Market = () => {
                             {status === "Available" ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
                                 <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
-                                <span>{isFilipino ? "Mabibili" : "Available"}</span>
+                                <span>{tx("Available")}</span>
                               </span>
                             ) : status === "Out of Stock" ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
                                 <AlertCircle className="h-3 w-3 text-amber-600 shrink-0" />
-                                <span>{isFilipino ? "Ubos Na" : "Out of Stock"}</span>
+                                <span>{tx("Out of Stock")}</span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs">
                                 <Ban className="h-3 w-3 text-rose-600 shrink-0" />
-                                <span>{isFilipino ? "Hindi Magagamit" : "Unavailable"}</span>
+                                <span>{tx("Unavailable")}</span>
                               </span>
                             )}
 
                             {prod.harvestDate && (
                               <span className="text-[10px] text-slate-400 font-medium truncate max-w-[100px]">
-                                {prod.harvestDate}
+                                {tx(prod.harvestDate)}
                               </span>
                             )}
                           </div>
 
                           {/* Title */}
                           <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors line-clamp-1">
-                            {prod.name}
+                            <button type="button" className="text-left" onClick={(event) => { event.stopPropagation(); setDetailProduct(prod); }}>{tx(prod.name)}</button>
                           </h3>
 
                           {/* Producer & Location Meta */}
                           <div className="space-y-1 mt-1.5 text-xs text-slate-500">
                             <div className="flex items-center gap-1.5 truncate">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                              <span className="font-medium text-slate-700 truncate">{prod.seller}</span>
+                              <span className="font-medium text-slate-700 truncate">{tx(prod.seller)}</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-slate-500 truncate">
                               <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
-                              <span className="truncate">{prod.location}</span>
+                              <span className="truncate">{tx(prod.location)}</span>
                             </div>
                           </div>
                         </div>
@@ -1003,15 +905,12 @@ const Market = () => {
                           {/* Price & Available Stock */}
                           <div className="flex items-baseline justify-between">
                             <div className="flex items-baseline gap-1">
-                              <span className="text-base font-black text-emerald-800">
-                                &#8369; {prod.price.toFixed(2)}
+                              <span className="text-base font-black text-emerald-800">{tx("₱ ")}{tx(prod.price.toFixed(2))}
                               </span>
-                              <span className="text-[11px] font-semibold text-slate-500">
-                                / {prod.unit}
+                              <span className="text-[11px] font-semibold text-slate-500">{tx(" / ")}{tx(prod.unit)}
                               </span>
                             </div>
-                            <span className="text-[11px] text-slate-500 font-medium">
-                              Available: {prod.availableStock} {prod.stockUnit}
+                            <span className="text-[11px] text-slate-500 font-medium">{tx("Available: ")}{tx(prod.availableStock)} {tx(prod.stockUnit)}
                             </span>
                           </div>
 
@@ -1025,7 +924,7 @@ const Market = () => {
                               className="w-full bg-[#0d533a] hover:bg-[#093c2a] text-white font-bold rounded-xl py-2 text-xs flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98"
                             >
                               <MessageCircle className="h-3.5 w-3.5" />
-                              {t("market.contactSeller", "Contact Seller")}
+                              {tx(t("market.contactSeller", "Contact Seller"))}
                             </Button>
                           ) : (
                             <Button
@@ -1035,12 +934,12 @@ const Market = () => {
                               {status === "Out of Stock" ? (
                                 <>
                                   <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-                                  <span>{isFilipino ? "Ubos Na ang Stock" : "Out of Stock"}</span>
+                                  <span>{tx("Out of Stock")}</span>
                                 </>
                               ) : (
                                 <>
                                   <Ban className="h-3.5 w-3.5 text-rose-500" />
-                                  <span>{isFilipino ? "Hindi Magagamit" : "Unavailable"}</span>
+                                  <span>{tx("Unavailable")}</span>
                                 </>
                               )}
                             </Button>
@@ -1060,9 +959,7 @@ const Market = () => {
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 rounded-lg border border-emerald-100 text-slate-600 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs"
-                >
-                  &larr; Previous
-                </button>
+                >{tx("← Previous")}</button>
 
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <button
@@ -1074,7 +971,7 @@ const Market = () => {
                         : "text-slate-700 hover:bg-emerald-50"
                     }`}
                   >
-                    {page}
+                    {tx(page)}
                   </button>
                 ))}
 
@@ -1082,9 +979,7 @@ const Market = () => {
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1.5 rounded-lg border border-emerald-100 text-slate-600 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs"
-                >
-                  Next &rarr;
-                </button>
+                >{tx("Next →")}</button>
               </div>
             )}
           </div>
@@ -1098,12 +993,8 @@ const Market = () => {
             <div>
               <DialogHeader className="pb-3 border-b border-emerald-100 text-left">
                 <DialogTitle className="text-xl font-bold font-heading text-slate-900 flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5 text-emerald-700" />
-                  Contact Local Producer
-                </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500">
-                  Direct connection with the farmer or fisherfolk. No middleman markups.
-                </DialogDescription>
+                  <MessageCircle className="h-5 w-5 text-emerald-700" />{tx("Contact Local Producer")}</DialogTitle>
+                <DialogDescription className="text-xs text-slate-500">{tx("Direct connection with the farmer or fisherfolk. No middleman markups.")}</DialogDescription>
               </DialogHeader>
 
               {contactSuccess ? (
@@ -1111,10 +1002,9 @@ const Market = () => {
                   <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="h-8 w-8" />
                   </div>
-                  <h4 className="text-base font-bold text-slate-900">Inquiry Sent Successfully!</h4>
+                  <h4 className="text-base font-bold text-slate-900">{tx("SMS Draft Ready")}</h4>
                   <p className="text-xs text-slate-600 max-w-xs mx-auto">
-                    {contactProduct.seller} will receive your message and order details shortly.
-                  </p>
+                    {tx("Review and send your message in your messaging app. No payment or reservation has been made.")}</p>
                 </div>
               ) : (
                 <div className="space-y-4 pt-4">
@@ -1122,14 +1012,13 @@ const Market = () => {
                   <div className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/80">
                     <img
                       src={prodImg(contactProduct.image)}
-                      alt={contactProduct.name}
+                      alt={tx(contactProduct.name)}
                       className="w-14 h-14 rounded-xl object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-slate-900 truncate">{contactProduct.name}</p>
-                      <p className="text-xs text-slate-600 truncate">{contactProduct.location}</p>
-                      <p className="text-xs font-bold text-emerald-800">
-                        &#8369; {contactProduct.price.toFixed(2)} / {contactProduct.unit}
+                      <p className="font-bold text-sm text-slate-900 truncate">{tx(contactProduct.name)}</p>
+                      <p className="text-xs text-slate-600 truncate">{tx(contactProduct.location)}</p>
+                      <p className="text-xs font-bold text-emerald-800">{tx("₱ ")}{tx(contactProduct.price.toFixed(2))}{tx(" / ")}{tx(contactProduct.unit)}
                       </p>
                     </div>
                   </div>
@@ -1138,13 +1027,11 @@ const Market = () => {
                   <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/80 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-[11px] text-slate-500 uppercase font-semibold">Producer</span>
-                        <p className="text-sm font-bold text-slate-800">{contactProduct.seller}</p>
+                        <span className="text-[11px] text-slate-500 uppercase font-semibold">{tx("Producer")}</span>
+                        <p className="text-sm font-bold text-slate-800">{tx(contactProduct.seller)}</p>
                       </div>
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                        <ShieldCheck className="h-3 w-3" />
-                        Verified
-                      </span>
+                        <ShieldCheck className="h-3 w-3" />{tx("Listed Producer")}</span>
                     </div>
 
                     <div className="flex gap-2 pt-1">
@@ -1152,16 +1039,12 @@ const Market = () => {
                         href={`tel:${contactProduct.sellerPhone}`}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-50 transition-colors shadow-2xs"
                       >
-                        <Phone className="h-3.5 w-3.5" />
-                        Call ({contactProduct.sellerPhone})
-                      </a>
+                        <Phone className="h-3.5 w-3.5" />{tx("Call (")}{tx(contactProduct.sellerPhone)}{tx(")")}</a>
                       <a
                         href={`sms:${contactProduct.sellerPhone}?body=Hello ${encodeURIComponent(contactProduct.seller)}, I saw your ${encodeURIComponent(contactProduct.name)} on Kaani Web.`}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-800 text-white text-xs font-bold hover:bg-emerald-900 transition-colors shadow-2xs"
                       >
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        Send SMS
-                      </a>
+                        <MessageCircle className="h-3.5 w-3.5" />{tx("Send SMS")}</a>
                     </div>
                   </div>
 
@@ -1169,22 +1052,22 @@ const Market = () => {
                   <form onSubmit={handleContactSubmit} className="space-y-3 pt-1">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Your Name *</label>
-                        <input
+                        <label htmlFor="market-field-3" className="text-xs font-bold text-slate-700 block mb-1">{tx("Your Name *")}</label>
+                        <input id="market-field-3"
                           type="text"
                           required
-                          placeholder="Juan Dela Cruz"
+                          placeholder={tx("Juan Dela Cruz")}
                           value={buyerName}
                           onChange={(e) => setBuyerName(e.target.value)}
                           className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-emerald-600"
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Contact Number *</label>
-                        <input
+                        <label htmlFor="market-field-4" className="text-xs font-bold text-slate-700 block mb-1">{tx("Contact Number *")}</label>
+                        <input id="market-field-4"
                           type="tel"
                           required
-                          placeholder="0917-000-0000"
+                          placeholder={tx("0917-000-0000")}
                           value={buyerPhone}
                           onChange={(e) => setBuyerPhone(e.target.value)}
                           className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-emerald-600"
@@ -1193,10 +1076,8 @@ const Market = () => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Quantity Needed ({contactProduct.stockUnit})
-                      </label>
-                      <input
+                      <label htmlFor="market-field-5" className="text-xs font-bold text-slate-700 block mb-1">{tx("Quantity Needed (")}{tx(contactProduct.stockUnit)}{tx(")")}</label>
+                      <input id="market-field-5"
                         type="number"
                         min="1"
                         max={contactProduct.availableStock}
@@ -1207,10 +1088,10 @@ const Market = () => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">Message / Inquiries</label>
-                      <textarea
+                      <label htmlFor="market-field-6" className="text-xs font-bold text-slate-700 block mb-1">{tx("Message / Inquiries")}</label>
+                      <textarea id="market-field-6"
                         rows={2}
-                        placeholder="Hi! Is this available for delivery or pickup in town?"
+                        placeholder={tx("Hi! Is this available for delivery or pickup in town?")}
                         value={buyerMessage}
                         onChange={(e) => setBuyerMessage(e.target.value)}
                         className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-emerald-600"
@@ -1225,16 +1106,16 @@ const Market = () => {
                       return (
                         <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-xs space-y-1.5">
                           <div className="flex justify-between items-center text-slate-700">
-                            <span>Estimated Total ({qty} {contactProduct.unit}):</span>
-                            <span className="font-bold text-slate-900">{formatPeso(subtotal)}</span>
+                            <span>{tx("Estimated Total (")}{tx(qty)} {tx(contactProduct.unit)}{tx("):")}</span>
+                            <span className="font-bold text-slate-900">{tx(formatPeso(subtotal))}</span>
                           </div>
                           <div className="flex justify-between items-center text-emerald-800 text-[11px]">
-                            <span>5% Sustainable Community Fee (included):</span>
-                            <span className="font-semibold">{formatPeso(comm.platformFee)}</span>
+                            <span>{tx("Illustrative platform fee (5%):")}</span>
+                            <span className="font-semibold">{tx(formatPeso(comm.platformFee))}</span>
                           </div>
                           <div className="flex justify-between items-center text-emerald-950 font-bold pt-1 border-t border-emerald-200/60">
-                            <span>Direct Payout to {contactProduct.seller}:</span>
-                            <span className="text-emerald-900 font-extrabold">{formatPeso(comm.sellerNet)} (95%)</span>
+                            <span>{tx("Estimated seller share for ")}{tx(contactProduct.seller)}{tx(":")}</span>
+                            <span className="text-emerald-900 font-extrabold">{tx(formatPeso(comm.sellerNet))}{tx(" (95%)")}</span>
                           </div>
                         </div>
                       );
@@ -1243,9 +1124,7 @@ const Market = () => {
                     <Button
                       type="submit"
                       className="w-full bg-[#0d533a] hover:bg-[#093c2a] text-white font-bold rounded-xl py-2.5 text-xs shadow-sm transition-all active:scale-98"
-                    >
-                      Submit In-App Inquiry & Reserve
-                    </Button>
+                    >{tx("Open SMS to Contact Seller")}</Button>
                   </form>
                 </div>
               )}
@@ -1262,14 +1141,14 @@ const Market = () => {
               <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-100">
                 <img
                   src={prodImg(detailProduct.image)}
-                  alt={detailProduct.name}
+                  alt={tx(detailProduct.name)}
                   className="w-full h-full object-cover"
                 />
                 <span className="absolute top-3 left-3 text-xs font-bold px-3 py-1 rounded-lg bg-emerald-800 text-white shadow-sm">
-                  {detailProduct.type}
+                  {tx(detailProduct.type)}
                 </span>
                 <span className="absolute top-3 right-3 text-xs font-bold px-3 py-1 rounded-lg bg-white/90 text-slate-800 shadow-sm backdrop-blur-xs">
-                  {detailProduct.category}
+                  {tx(detailProduct.category)}
                 </span>
               </div>
 
@@ -1277,31 +1156,30 @@ const Market = () => {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-xl font-bold font-heading text-slate-900">
-                      {detailProduct.name}
+                      {tx(detailProduct.name)}
                     </h3>
                     <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
                       <MapPin className="h-3.5 w-3.5 text-emerald-700" />
-                      {detailProduct.location}
+                      {tx(detailProduct.location)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-black text-emerald-800">
-                      &#8369; {detailProduct.price.toFixed(2)}
+                    <p className="text-2xl font-black text-emerald-800">{tx("₱ ")}{tx(detailProduct.price.toFixed(2))}
                     </p>
-                    <p className="text-xs text-slate-500 font-semibold">per {detailProduct.unit}</p>
+                    <p className="text-xs text-slate-500 font-semibold">{tx("per ")}{tx(detailProduct.unit)}</p>
                   </div>
                 </div>
 
                 <div className="mt-4 p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-medium">Availability Status:</span>
+                    <span className="text-slate-500 font-medium">{tx("Availability Status:")}</span>
                     {(() => {
                       const st = getProductEffectiveStatus(detailProduct);
                       if (st === "Available") {
                         return (
                           <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                            {isFilipino ? "Mabibili (Available)" : "Available"}
+                            {tx("Available")}
                           </span>
                         );
                       }
@@ -1309,38 +1187,36 @@ const Market = () => {
                         return (
                           <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200 shadow-2xs">
                             <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
-                            {isFilipino ? "Ubos Na (Out of Stock)" : "Out of Stock"}
+                            {tx("Out of Stock")}
                           </span>
                         );
                       }
                       return (
                         <span className="inline-flex items-center gap-1 font-bold text-rose-800 bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-200 shadow-2xs">
                           <Ban className="h-3.5 w-3.5 text-rose-600" />
-                          {isFilipino ? "Hindi Magagamit (Unavailable)" : "Unavailable"}
+                          {tx("Unavailable")}
                         </span>
                       );
                     })()}
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Available Quantity:</span>
-                    <span className="font-bold text-slate-800">{detailProduct.availableStock} {detailProduct.stockUnit}</span>
+                    <span className="text-slate-500 font-medium">{tx("Available Quantity:")}</span>
+                    <span className="font-bold text-slate-800">{tx(detailProduct.availableStock)} {tx(detailProduct.stockUnit)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Harvest / Catch Info:</span>
-                    <span className="font-bold text-slate-800">{detailProduct.harvestDate || "Fresh Batch"}</span>
+                    <span className="text-slate-500 font-medium">{tx("Harvest / Catch Info:")}</span>
+                    <span className="font-bold text-slate-800">{tx(detailProduct.harvestDate || "Fresh Batch")}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Registered Producer:</span>
-                    <span className="font-bold text-emerald-900">{detailProduct.seller}</span>
+                    <span className="text-slate-500 font-medium">{tx("Registered Producer:")}</span>
+                    <span className="font-bold text-emerald-900">{tx(detailProduct.seller)}</span>
                   </div>
                 </div>
 
                 <div className="mt-3">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Product Description
-                  </h4>
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{tx("Product Description")}</h4>
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    {detailProduct.description}
+                    {tx(detailProduct.description)}
                   </p>
                 </div>
               </div>
@@ -1355,8 +1231,7 @@ const Market = () => {
                     }}
                     className="flex-1 bg-[#0d533a] hover:bg-[#093c2a] text-white font-bold rounded-xl py-2.5 text-sm shadow-xs flex items-center justify-center gap-2"
                   >
-                    <MessageCircle className="h-4 w-4" />
-                    Contact {detailProduct.seller}
+                    <MessageCircle className="h-4 w-4" />{tx("Contact ")}{tx(detailProduct.seller)}
                   </Button>
                 ) : (
                   <Button
@@ -1364,9 +1239,9 @@ const Market = () => {
                     className="flex-1 bg-slate-100 text-slate-400 border border-slate-200 font-bold rounded-xl py-2.5 text-sm cursor-not-allowed opacity-80"
                   >
                     <AlertCircle className="h-4 w-4 mr-1 text-amber-500" />
-                    {getProductEffectiveStatus(detailProduct) === "Out of Stock"
-                      ? (isFilipino ? "Ubos Na ang Stock" : "Out of Stock")
-                      : (isFilipino ? "Hindi Magagamit" : "Unavailable")}
+                    {tx(getProductEffectiveStatus(detailProduct) === "Out of Stock"
+                      ? ("Out of Stock")
+                      : ("Unavailable"))}
                   </Button>
                 )}
                 <Button
@@ -1377,18 +1252,16 @@ const Market = () => {
                     handleOpenReport(prod);
                   }}
                   className="rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
-                  title="Report this listing"
+                  title={tx("Report this listing")}
                 >
                   <Flag className="h-3.5 w-3.5 text-rose-600" />
-                  <span>{isFilipino ? "I-ulat" : "Report Listing"}</span>
+                  <span>{tx("Report Listing")}</span>
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setDetailProduct(null)}
                   className="rounded-xl border-slate-200 text-xs"
-                >
-                  Close
-                </Button>
+                >{tx("Close")}</Button>
               </div>
             </div>
           )}
@@ -1401,12 +1274,10 @@ const Market = () => {
           <DialogHeader className="pb-3 border-b border-emerald-100 text-left">
             <DialogTitle className="text-xl font-bold font-heading text-slate-900 flex items-center gap-2">
               <PlusCircle className="h-5 w-5 text-emerald-700" />
-              {isFilipino ? "Ilista ang Produkto" : "Create Product Listing"}
+              {tx("Create Product Listing")}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              {isFilipino
-                ? "Ilathala ang iyong produktong pang-agrikultura o pangisdaan para sa mga mamimili."
-                : "Promote and sell your agriculture or fisheries products directly to buyers."}
+              {tx("Promote and sell your agriculture or fisheries products directly to buyers.")}
             </DialogDescription>
           </DialogHeader>
 
@@ -1415,21 +1286,17 @@ const Market = () => {
               <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
                 <Check className="h-8 w-8" />
               </div>
-              <h4 className="text-base font-bold text-slate-900">Your Harvest is Live!</h4>
-              <p className="text-xs text-slate-600 max-w-xs mx-auto">
-                Your product has been added to the Kaani Market catalog for buyers to browse.
-              </p>
+              <h4 className="text-base font-bold text-slate-900">{tx("Listing Saved on This Device")}</h4>
+              <p className="text-xs text-slate-600 max-w-xs mx-auto">{tx("This listing is saved in this browser only. It is not published to other buyers.")}</p>
             </div>
           ) : (
             <form onSubmit={handleSellSubmit} className="space-y-3.5 pt-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Product Name *
-                </label>
-                <input
+                <label htmlFor="market-field-7" className="text-xs font-bold text-slate-700 block mb-1">{tx("Product Name *")}</label>
+                <input id="market-field-7"
                   type="text"
                   required
-                  placeholder="e.g. Fresh Red Tilapia, Native Tomatoes, Organic Saba..."
+                  placeholder={tx("e.g. Fresh Red Tilapia, Native Tomatoes, Organic Saba...")}
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                   className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-emerald-600"
@@ -1438,69 +1305,65 @@ const Market = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Category *
-                  </label>
-                  <select
+                  <label htmlFor="market-field-8" className="text-xs font-bold text-slate-700 block mb-1">{tx("Category *")}</label>
+                  <select id="market-field-8"
                     value={newProduct.category}
-                    onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value as any })}
+                    onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value as typeof newProduct.category })}
                     className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-emerald-600 font-medium"
                   >
                     {MARKET_CATEGORIES.filter(c => c !== "All Products").map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>{tx(c)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Product Type *
-                  </label>
-                  <select
+                  <label htmlFor="market-field-9" className="text-xs font-bold text-slate-700 block mb-1">{tx("Product Type *")}</label>
+                  <select id="market-field-9"
                     value={newProduct.type}
-                    onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value as any })}
+                    onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value as typeof newProduct.type })}
                     className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-emerald-600 font-medium"
                   >
-                    <option value="Farm Product">Farm Product</option>
-                    <option value="Fishery Product">Fishery Product</option>
-                    <option value="Processed Product">Processed Product</option>
+                    <option value="Farm Product">{tx("Farm Product")}</option>
+                    <option value="Fishery Product">{tx("Fishery Product")}</option>
+                    <option value="Processed Product">{tx("Processed Product")}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Price (&#8369;) *</label>
-                  <input
+                  <label htmlFor="market-field-10" className="text-xs font-bold text-slate-700 block mb-1">{tx("Price (₱) *")}</label>
+                  <input id="market-field-10"
                     type="number"
                     step="0.5"
                     required
-                    placeholder="50"
+                    placeholder={tx("50")}
                     value={newProduct.price}
                     onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
                     className="w-full text-xs p-2 rounded-xl border border-emerald-200 bg-[#f8faf9]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Unit</label>
-                  <select
+                  <label htmlFor="market-field-11" className="text-xs font-bold text-slate-700 block mb-1">{tx("Unit")}</label>
+                  <select id="market-field-11"
                     value={newProduct.unit}
                     onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
                     className="w-full text-xs p-2 rounded-xl border border-emerald-200 bg-[#f8faf9]"
                   >
-                    <option value="kg">kg</option>
-                    <option value="pack">pack</option>
-                    <option value="sack">sack</option>
-                    <option value="bottle">bottle</option>
-                    <option value="piece">piece</option>
-                    <option value="tali">tali / bundle</option>
+                    <option value="kg">{tx("kg")}</option>
+                    <option value="pack">{tx("pack")}</option>
+                    <option value="sack">{tx("sack")}</option>
+                    <option value="bottle">{tx("bottle")}</option>
+                    <option value="piece">{tx("piece")}</option>
+                    <option value="tali">{tx("tali / bundle")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Stock</label>
-                  <input
+                  <label htmlFor="market-field-12" className="text-xs font-bold text-slate-700 block mb-1">{tx("Stock")}</label>
+                  <input id="market-field-12"
                     type="number"
                     required
-                    placeholder="50"
+                    placeholder={tx("50")}
                     value={newProduct.availableStock}
                     onChange={(e) => {
                       const qty = parseInt(e.target.value) || 0;
@@ -1514,37 +1377,37 @@ const Market = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Status *</label>
-                  <select
+                  <label htmlFor="market-field-13" className="text-xs font-bold text-slate-700 block mb-1">{tx("Status *")}</label>
+                  <select id="market-field-13"
                     value={newProduct.status || "Available"}
                     onChange={(e) => setNewProduct({ ...newProduct, status: e.target.value as ProductStatus })}
                     className="w-full text-xs p-2 rounded-xl border border-emerald-200 bg-[#f8faf9] font-medium"
                   >
-                    <option value="Available">Available</option>
-                    <option value="Out of Stock">Out of Stock</option>
-                    <option value="Unavailable">Unavailable</option>
+                    <option value="Available">{tx("Available")}</option>
+                    <option value="Out of Stock">{tx("Out of Stock")}</option>
+                    <option value="Unavailable">{tx("Unavailable")}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Your Full Name *</label>
-                  <input
+                  <label htmlFor="market-field-14" className="text-xs font-bold text-slate-700 block mb-1">{tx("Your Full Name *")}</label>
+                  <input id="market-field-14"
                     type="text"
                     required
-                    placeholder="Mang Juan"
+                    placeholder={tx("Mang Juan")}
                     value={newProduct.seller}
                     onChange={(e) => setNewProduct({ ...newProduct, seller: e.target.value })}
                     className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Contact Phone *</label>
-                  <input
+                  <label htmlFor="market-field-15" className="text-xs font-bold text-slate-700 block mb-1">{tx("Contact Phone *")}</label>
+                  <input id="market-field-15"
                     type="tel"
                     required
-                    placeholder="+63 917 000 0000"
+                    placeholder={tx("+63 917 000 0000")}
                     value={newProduct.sellerPhone}
                     onChange={(e) => setNewProduct({ ...newProduct, sellerPhone: e.target.value })}
                     className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9]"
@@ -1553,28 +1416,26 @@ const Market = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Location *</label>
-                <select
+                <label htmlFor="market-field-16" className="text-xs font-bold text-slate-700 block mb-1">{tx("Location *")}</label>
+                <select id="market-field-16"
                   value={newProduct.location}
                   onChange={(e) => setNewProduct({ ...newProduct, location: e.target.value })}
                   className="w-full text-xs p-2.5 rounded-xl border border-emerald-200 bg-[#f8faf9]"
                 >
                   {MARKET_LOCATIONS.filter(l => l !== "All Locations").map((loc) => (
-                    <option key={loc} value={loc}>{loc}</option>
+                    <option key={loc} value={loc}>{tx(loc)}</option>
                   ))}
                 </select>
               </div>
 
               {/* Produce Photo Upload & Selection */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Product Photo *
-                </label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">{tx("Product Photo *")}</label>
                 <div className="flex items-center gap-3">
                   <div className="relative w-20 h-16 rounded-xl overflow-hidden border border-emerald-200 bg-slate-100 shrink-0">
                     <img 
                       src={newProduct.image || `${import.meta.env.BASE_URL}assets/images/market/vegetables-bundle.jpg`} 
-                      alt="Product preview" 
+                      alt={tx("Product preview")} 
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const img = e.target as HTMLImageElement;
@@ -1586,7 +1447,7 @@ const Market = () => {
                   <div className="flex-1 space-y-1.5">
                     <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200 cursor-pointer transition-colors">
                       <PlusCircle className="h-3.5 w-3.5" />
-                      <span>Upload Photo</span>
+                      <span>{tx("Upload Photo")}</span>
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -1594,9 +1455,7 @@ const Market = () => {
                         className="hidden" 
                       />
                     </label>
-                    <p className="text-[10px] text-slate-500">
-                      Upload from your phone or camera.
-                    </p>
+                    <p className="text-[10px] text-slate-500">{tx("Upload from your phone or camera.")}</p>
                   </div>
                 </div>
 
@@ -1610,34 +1469,28 @@ const Market = () => {
                   <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-50/90 to-teal-50/60 border border-emerald-200/80 space-y-2 text-xs">
                     <div className="flex items-center justify-between font-bold text-slate-800">
                       <span className="flex items-center gap-1.5">
-                        <Tag className="h-3.5 w-3.5 text-emerald-700" />
-                        5% Community Trade Model
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                        95% Seller Direct
-                      </span>
+                        <Tag className="h-3.5 w-3.5 text-emerald-700" />{tx("Illustrative Community Trade Model")}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">{tx("95% Seller Direct")}</span>
                     </div>
 
                     <div className="space-y-1 text-slate-600 text-[11px] pt-1 border-t border-emerald-200/50">
                       <div className="flex justify-between">
-                        <span>Listing Price (Buyer pays):</span>
-                        <span className="font-semibold text-slate-800">{formatPeso(comm.grossPrice)}</span>
+                        <span>{tx("Listing Price (Buyer pays):")}</span>
+                        <span className="font-semibold text-slate-800">{tx(formatPeso(comm.grossPrice))}</span>
                       </div>
                       <div className="flex justify-between text-emerald-800">
-                        <span>5% Sustainable Platform & Compliance Fee:</span>
-                        <span className="font-semibold">-{formatPeso(comm.platformFee)}</span>
+                        <span>{tx("Illustrative platform fee (5%):")}</span>
+                        <span className="font-semibold">{tx(" - ")}{tx(formatPeso(comm.platformFee))}</span>
                       </div>
                     </div>
 
                     <div className="pt-1.5 border-t border-emerald-200/70 flex justify-between items-center text-slate-900 font-bold">
-                      <span className="text-emerald-950">Your Direct Net Take-Home (95%):</span>
+                      <span className="text-emerald-950">{tx("Your Direct Net Take-Home (95%):")}</span>
                       <span className="text-sm font-extrabold text-emerald-900 bg-white/80 px-2 py-0.5 rounded-lg border border-emerald-200">
-                        {formatPeso(comm.sellerNet)}
+                        {tx(formatPeso(comm.sellerNet))}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 italic leading-snug">
-                      The 5% fee helps maintain municipal fisheries compliance, seller verification, and local direct trade logistics.
-                    </p>
+                    <p className="text-[10px] text-slate-500 italic leading-snug">{tx("Estimates only. This website does not collect payments or deduct fees. Arrange terms directly with the seller.")}</p>
                   </div>
                 );
               })()}
@@ -1655,23 +1508,19 @@ const Market = () => {
                     className="mt-0.5 h-4 w-4 rounded text-emerald-700 border-emerald-300 focus:ring-emerald-500"
                   />
                   <span className="text-xs text-slate-700 leading-snug">
-                    {isFilipino
-                      ? "Sa pagsusumite ng produkto, kinukumpirma mo na iyong nabasa at sumasang-ayon ka sa "
-                      : "By submitting a product listing, you confirm that you have read and agree to follow the "}
+                    {tx("By submitting a product listing, you confirm that you have read and agree to follow the ")}
                     <button
                       type="button"
                       onClick={() => setIsRulesModalOpen(true)}
                       className="text-emerald-700 font-bold underline hover:text-emerald-900 inline"
                     >
-                      {isFilipino ? "Mga Tuntunin sa Pamilihan ng Kaani Web" : "Kaani Web Marketplace Rules"}
-                    </button>
-                    . *
-                  </span>
+                      {tx("Kaani Web Marketplace Rules")}
+                    </button>{tx(". *")}</span>
                 </label>
                 {rulesError && (
                   <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 animate-in fade-in">
                     <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
-                    <span>{rulesError}</span>
+                    <span>{tx(rulesError)}</span>
                   </div>
                 )}
               </div>
@@ -1680,7 +1529,7 @@ const Market = () => {
                 type="submit"
                 className="w-full bg-[#0d533a] hover:bg-[#093c2a] text-white font-bold rounded-xl py-2.5 text-xs shadow-md transition-all active:scale-98"
               >
-                {isFilipino ? "Ilathala sa Pamilihan" : "Publish to Marketplace"}
+                {tx("Save Listing on This Device")}
               </Button>
             </form>
           )}
@@ -1695,12 +1544,10 @@ const Market = () => {
               <DialogHeader className="pb-3 border-b border-rose-100 text-left">
                 <DialogTitle className="text-xl font-bold font-heading text-slate-900 flex items-center gap-2">
                   <Flag className="h-5 w-5 text-rose-600" />
-                  {isFilipino ? "I-ulat ang Listing o Problema" : "Report Listing / Problem"}
+                  {tx("Report Listing or Concern")}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-500">
-                  {isFilipino
-                    ? "Tulungang panatilihing ligtas, tapat, at maaasahan ang Pamilihan ng Kaani."
-                    : "Help keep Kaani Market trustworthy for farmers, fisherfolk, and community buyers."}
+                  {tx("Help keep Kaani Market trustworthy for farmers, fisherfolk, and community buyers.")}
                 </DialogDescription>
               </DialogHeader>
 
@@ -1710,13 +1557,13 @@ const Market = () => {
                     <CheckCircle2 className="h-8 w-8" />
                   </div>
                   <h4 className="text-base font-bold text-slate-900">
-                    {t("market.reportSuccess", "Report Submitted Successfully")}
+                    {tx(t("market.reportSuccess", "Report Submitted Successfully"))}
                   </h4>
                   <p className="text-xs text-slate-600 max-w-xs mx-auto">
-                    {t(
+                    {tx(t(
                       "market.reportSuccessDesc",
                       "Thank you for helping keep Kaani Market safe. Our administrators will review this listing."
-                    )}
+                    ))}
                   </p>
                 </div>
               ) : (
@@ -1725,22 +1572,22 @@ const Market = () => {
                   <div className="p-3 rounded-2xl bg-rose-50/60 border border-rose-100 flex items-center gap-3">
                     <img
                       src={reportProduct.image}
-                      alt={reportProduct.name}
+                      alt={tx(reportProduct.name)}
                       className="w-12 h-12 rounded-xl object-cover shrink-0"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-xs text-slate-900 truncate">{reportProduct.name}</p>
-                      <p className="text-[11px] text-slate-500 truncate">Seller: {reportProduct.seller}</p>
-                      <p className="text-[11px] font-semibold text-emerald-800">&#8369; {reportProduct.price.toFixed(2)} / {reportProduct.unit}</p>
+                      <p className="font-bold text-xs text-slate-900 truncate">{tx(reportProduct.name)}</p>
+                      <p className="text-[11px] text-slate-500 truncate">{tx("Seller: ")}{tx(reportProduct.seller)}</p>
+                      <p className="text-[11px] font-semibold text-emerald-800">{tx("₱ ")}{tx(reportProduct.price.toFixed(2))}{tx(" / ")}{tx(reportProduct.unit)}</p>
                     </div>
                   </div>
 
                   {/* Complaint Category Select (Required) */}
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      {isFilipino ? "Dahilan ng Reklamo *" : "Complaint Category *"}
+                    <label htmlFor="market-field-17" className="text-xs font-bold text-slate-700 block mb-1">
+                      {tx("Complaint Category *")}
                     </label>
-                    <select
+                    <select id="market-field-17"
                       required
                       value={reportCategory}
                       onChange={(e) => {
@@ -1749,10 +1596,10 @@ const Market = () => {
                       }}
                       className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium"
                     >
-                      <option value="">{isFilipino ? "-- Pumili ng Kategorya --" : "-- Select a Reason --"}</option>
+                      <option value="">{tx("-- Select a Reason --")}</option>
                       {REPORT_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>
-                          {cat}
+                          {tx(cat)}
                         </option>
                       ))}
                     </select>
@@ -1760,15 +1607,13 @@ const Market = () => {
 
                   {/* Optional Description */}
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      {isFilipino ? "Karagdagang Detalye (Opsyonal)" : "Additional Details (Optional)"}
+                    <label htmlFor="market-field-18" className="text-xs font-bold text-slate-700 block mb-1">
+                      {tx("Additional Details (Optional)")}
                     </label>
-                    <textarea
+                    <textarea id="market-field-18"
                       rows={3}
                       placeholder={
-                        isFilipino
-                          ? "Ilarawan ang nakitang mali, maling presyo, o kahina-hinalang aktibidad..."
-                          : "Describe the inaccuracy, misleading pricing, or suspicious behavior..."
+                        tx("Describe the inaccuracy, misleading pricing, or suspicious behavior...")
                       }
                       value={reportDescription}
                       onChange={(e) => setReportDescription(e.target.value)}
@@ -1778,25 +1623,25 @@ const Market = () => {
 
                   {/* Optional Reporter Contact */}
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      {isFilipino ? "Iyong Contact / Email (Opsyonal para sa update)" : "Your Contact / Email (Optional for updates)"}
+                    <label htmlFor="market-field-19" className="text-xs font-bold text-slate-700 block mb-1">
+                      {tx("Your Contact / Email (Optional for updates)")}
                     </label>
-                    <input
+                    <input id="market-field-19"
                       type="text"
-                      placeholder="e.g. 0917-xxx-xxxx or email@example.com"
+                      placeholder={tx("e.g. 0917-xxx-xxxx or email@example.com")}
                       value={reportReporterContact}
                       onChange={(e) => setReportReporterContact(e.target.value)}
                       className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-rose-500"
                     />
                     <p className="text-[10px] text-slate-400 mt-1">
-                      {isFilipino ? "Hindi isisiwalat sa publiko ang iyong impormasyon." : "Your private contact information is never shown publicly."}
+                      {tx("Your private contact information is never shown publicly.")}
                     </p>
                   </div>
 
                   {reportError && (
                     <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
-                      <span>{reportError}</span>
+                      <span>{tx(reportError)}</span>
                     </div>
                   )}
 
@@ -1806,9 +1651,9 @@ const Market = () => {
                       disabled={isSubmittingReport || !reportCategory}
                       className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl py-2 text-xs shadow-xs"
                     >
-                      {isSubmittingReport
-                        ? (isFilipino ? "Isinusumite..." : "Submitting...")
-                        : (isFilipino ? "Isumite ang Reklamo" : "Submit Report")}
+                      {tx(isSubmittingReport
+                        ? ("Submitting...")
+                        : ("Submit Report"))}
                     </Button>
                     <Button
                       type="button"
@@ -1816,7 +1661,7 @@ const Market = () => {
                       onClick={() => setReportProduct(null)}
                       className="rounded-xl border-slate-200 text-xs"
                     >
-                      {isFilipino ? "Kanselahin" : "Cancel"}
+                      {tx("Cancel")}
                     </Button>
                   </div>
                 </form>
@@ -1832,12 +1677,10 @@ const Market = () => {
           <DialogHeader className="pb-3 border-b border-emerald-100 text-left">
             <DialogTitle className="text-xl font-bold font-heading text-slate-900 flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-emerald-700" />
-              {isFilipino ? "Mga Tuntunin sa Pamilihan ng Kaani Web" : "Kaani Web Marketplace Rules"}
+              {tx("Kaani Web Marketplace Rules")}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              {isFilipino
-                ? "Mga pamantayan para sa tapat, makatarungan, at napapanatiling kalakalan sa pagitan ng mga magsasaka, mangingisda, at mamimili."
-                : "Standards and community guidelines for transparent, honest, and sustainable trading."}
+              {tx("Standards and community guidelines for transparent, honest, and sustainable trading.")}
             </DialogDescription>
           </DialogHeader>
 
@@ -1845,109 +1688,91 @@ const Market = () => {
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
                 <h4 className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">1</span>
-                  {isFilipino ? "Wastong Impormasyon" : "1. Accurate Listings"}
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">{tx("1")}</span>
+                  {tx("1. Accurate Listings")}
                 </h4>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  {isFilipino
-                    ? "Dapat magbigay ang nagbebenta ng totoo at tumpak na pangalan, paglalarawan, presyo, dami, at availability ng produkto."
-                    : "Sellers must provide truthful and accurate product names, descriptions, prices, quantities, and availability information."}
+                  {tx("Sellers must provide truthful and accurate product names, descriptions, prices, quantities, and availability information.")}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
                 <h4 className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">2</span>
-                  {isFilipino ? "Naaangkop na mga Produkto" : "2. Appropriate Products"}
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">{tx("2")}</span>
+                  {tx("2. Appropriate Products")}
                 </h4>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  {isFilipino
-                    ? "Lahat ng produkto ay dapat sumusunod sa mga umiiral na batas at mga patakaran ng pamilihan ng Kaani Web."
-                    : "All product listings must comply with applicable laws and Kaani Web marketplace policies."}
+                  {tx("All product listings must comply with applicable laws and Kaani Web marketplace policies.")}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
                 <h4 className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">3</span>
-                  {isFilipino ? "Pananagutan ng Nagbebenta" : "3. Seller Responsibility"}
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">{tx("3")}</span>
+                  {tx("3. Seller Responsibility")}
                 </h4>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  {isFilipino
-                    ? "Ang mga nagbebenta ang may pananagutan sa katumpakan ng kanilang mga listahan at sa malinaw na komunikasyon sa mamimili."
-                    : "Sellers are responsible for the accuracy of their listings and for communicating clearly with potential buyers."}
+                  {tx("Sellers are responsible for the accuracy of their listings and for communicating clearly with potential buyers.")}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
                 <h4 className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">4</span>
-                  {isFilipino ? "Magalang na Transaksyon" : "4. Respectful Transactions"}
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">{tx("4")}</span>
+                  {tx("4. Respectful Transactions")}
                 </h4>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  {isFilipino
-                    ? "Ang mga mamimili at nagbebenta ay dapat makipag-usap nang tapat, magalang, at propesyonal sa buong transaksyon."
-                    : "Buyers and sellers must communicate honestly, respectfully, and professionally throughout their transactions."}
+                  {tx("Buyers and sellers must communicate honestly, respectfully, and professionally throughout their transactions.")}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
                 <h4 className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">5</span>
-                  {isFilipino ? "Pagsusuri sa Listing" : "5. Listing Review"}
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">{tx("5")}</span>
+                  {tx("5. Listing Review")}
                 </h4>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  {isFilipino
-                    ? "Maaaring suriin, tanggihan, itago, o alisin ng mga tagapangasiwa ng Kaani Web ang mga listing na lumalabag sa mga patakaran."
-                    : "Kaani Web administrators may review, reject, hide, or remove product listings that violate marketplace rules or applicable policies."}
+                  {tx("Kaani Web administrators may review, reject, hide, or remove product listings that violate marketplace rules or applicable policies.")}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
                 <h4 className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">6</span>
-                  {isFilipino ? "Privacy ng Nagbebenta" : "6. Seller Privacy"}
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">{tx("6")}</span>
+                  {tx("6. Seller Privacy")}
                 </h4>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  {isFilipino
-                    ? "Tanging impormasyong inilaan para sa publiko ang dapat lumabas. Hindi dapat magsumite ng hindi kailangang personal na datos."
-                    : "Only seller information intended for public display should appear in the marketplace. Sellers should not submit unnecessary personal or sensitive information."}
+                  {tx("Only seller information intended for public display should appear in the marketplace. Sellers should not submit unnecessary personal or sensitive information.")}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
                 <h4 className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">7</span>
-                  {isFilipino ? "Availability ng Produkto" : "7. Product Availability"}
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">{tx("7")}</span>
+                  {tx("7. Product Availability")}
                 </h4>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  {isFilipino
-                    ? "Dapat panatilihing napapanahon ang impormasyon sa availability. Ang produktong ubos na o hindi magagamit ay dapat markahan."
-                    : "Sellers must keep product availability information updated. Products that are sold out or temporarily unavailable should be marked accordingly."}
+                  {tx("Sellers must keep product availability information updated. Products that are sold out or temporarily unavailable should be marked accordingly.")}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
                 <h4 className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">8</span>
-                  {isFilipino ? "Pag-uulat ng mga Paglabag" : "8. Reporting Violations"}
+                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs">{tx("8")}</span>
+                  {tx("8. Reporting Violations")}
                 </h4>
                 <p className="text-slate-600 text-[11px] leading-relaxed">
-                  {isFilipino
-                    ? "Maaaring mag-ulat ang mga gumagamit kapag may hinalang lumalabag sa patakaran. Gamitin ang pag-uulat sa tapat at makatarungang paraan."
-                    : "Users may report listings or marketplace activities they believe violate these rules. Reports should be submitted honestly and used for legitimate concerns."}
+                  {tx("Users may report listings or marketplace activities they believe violate these rules. Reports should be submitted honestly and used for legitimate concerns.")}
                 </p>
               </div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-emerald-900 text-white space-y-1">
               <h5 className="font-bold text-xs text-emerald-200 uppercase tracking-wider">
-                {isFilipino ? "Kasunduan sa mga Tuntunin" : "Agreement to the Rules"}
+                {tx("Agreement to the Rules")}
               </h5>
               <p className="text-xs text-emerald-100 leading-relaxed">
-                {isFilipino
-                  ? "Sa pagsusumite ng listing ng produkto, kinukumpirma mo na iyong nabasa at sumasang-ayon ka sa pagsunod sa Mga Tuntunin sa Pamilihan ng Kaani Web."
-                  : "By submitting a product listing, you confirm that you have read and agree to follow the Kaani Web Marketplace Rules."}
+                {tx("By submitting a product listing, you confirm that you have read and agree to follow the Kaani Web Marketplace Rules.")}
               </p>
             </div>
           </div>
@@ -1957,152 +1782,7 @@ const Market = () => {
               onClick={() => setIsRulesModalOpen(false)}
               className="bg-[#0d533a] hover:bg-[#093c2a] text-white rounded-xl text-xs font-bold"
             >
-              {isFilipino ? "Naunawaan Ko" : "Understood"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ADMIN MODERATION & REPORTS REVIEW MODAL (Requirement 2) */}
-      <Dialog open={isAdminReportsOpen} onOpenChange={setIsAdminReportsOpen}>
-        <DialogContent className="sm:max-w-3xl rounded-3xl p-6 bg-white border border-amber-200 shadow-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader className="pb-3 border-b border-amber-100 text-left">
-            <DialogTitle className="text-xl font-bold font-heading text-slate-900 flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-amber-600" />
-              Community Reports & Moderation
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Investigate community reports, issue seller warnings, or hide non-compliant marketplace listings.
-            </DialogDescription>
-          </DialogHeader>
-
-          {adminActionNotice && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              <span>{adminActionNotice}</span>
-            </div>
-          )}
-
-          <div className="space-y-3 pt-2">
-            {reportsList.length === 0 ? (
-              <div className="py-12 text-center text-slate-500 space-y-2">
-                <ShieldCheck className="h-10 w-10 text-emerald-600 mx-auto opacity-70" />
-                <p className="font-bold text-sm">No marketplace reports submitted</p>
-                <p className="text-xs text-slate-400">All product listings are currently in good standing.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {reportsList.map((rep) => {
-                  const targetProd = products.find((p) => p.id === rep.productId);
-                  const isHidden = targetProd?.is_hidden;
-
-                  return (
-                    <div
-                      key={rep.id}
-                      className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5 text-xs"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-sm text-slate-900">
-                            {rep.productName}
-                          </span>
-                          <Badge
-                            className={`text-[10px] ${
-                              rep.status === "pending"
-                                ? "bg-amber-100 text-amber-900 border-amber-200"
-                                : rep.status === "resolved"
-                                ? "bg-emerald-100 text-emerald-900 border-emerald-200"
-                                : "bg-slate-100 text-slate-700 border-slate-200"
-                            }`}
-                          >
-                            {rep.status.toUpperCase()}
-                          </Badge>
-                          {isHidden && (
-                            <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-[10px]">
-                              HIDDEN FROM CATALOG
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-slate-400">
-                          {new Date(rep.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-2 text-slate-600 text-[11px]">
-                        <div>
-                          <strong className="text-slate-700">Category:</strong> {rep.category}
-                        </div>
-                        <div>
-                          <strong className="text-slate-700">Seller:</strong> {rep.sellerName}
-                        </div>
-                        <div>
-                          <strong className="text-slate-700">Reporter:</strong> {rep.reporterName}{" "}
-                          {rep.reporterContact && `(${rep.reporterContact})`}
-                        </div>
-                        {rep.actionTaken && rep.actionTaken !== "none" && (
-                          <div>
-                            <strong className="text-slate-700">Action:</strong> {rep.actionTaken}
-                          </div>
-                        )}
-                      </div>
-
-                      {rep.description && (
-                        <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-[11px]">
-                          <strong>Notes:</strong> {rep.description}
-                        </div>
-                      )}
-
-                      {/* Admin Actions */}
-                      <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200/80">
-                        {!isHidden ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAdminAction(rep.id, "listing_hidden", rep.productId)}
-                            className="h-7 text-xs rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold"
-                          >
-                            Hide Listing
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRestoreProduct(rep.productId)}
-                            className="h-7 text-xs rounded-lg border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold"
-                          >
-                            Restore Listing
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAdminAction(rep.id, "warning_issued", rep.productId)}
-                          className="h-7 text-xs rounded-lg border-amber-300 text-amber-800 hover:bg-amber-50 font-bold"
-                        >
-                          Issue Warning
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleAdminAction(rep.id, "dismissed", rep.productId)}
-                          className="h-7 text-xs rounded-lg text-slate-600 hover:text-slate-900"
-                        >
-                          Dismiss
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="pt-3 border-t border-slate-100">
-            <Button
-              variant="outline"
-              onClick={() => setIsAdminReportsOpen(false)}
-              className="rounded-xl border-slate-200 text-xs font-bold"
-            >
-              Close Moderation
+              {tx("Understood")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2123,12 +1803,10 @@ const Market = () => {
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-bold font-heading text-slate-900 group-hover:text-emerald-800 transition-colors">
-                  {isFilipino ? "Mga Tuntunin sa Pamilihan ng Kaani Web" : "Kaani Web Marketplace Rules"}
+                  {tx("Kaani Web Marketplace Rules")}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {isFilipino
-                    ? "I-click upang buksan o isara ang 8 pamantayan para sa tapat at maayos na kalakalan."
-                    : "Click to expand or collapse the 8 core policies ensuring transparent and respectful trade."}
+                  {tx("Click to expand or collapse the 8 core policies ensuring transparent and respectful trade.")}
                 </p>
               </div>
             </div>
@@ -2147,59 +1825,43 @@ const Market = () => {
                 {[
                   {
                     num: 1,
-                    title: isFilipino ? "Wastong Impormasyon" : "1. Accurate Listings",
-                    desc: isFilipino
-                      ? "Sellers must provide truthful and accurate product names, descriptions, prices, quantities, and availability information."
-                      : "Sellers must provide truthful and accurate product names, descriptions, prices, quantities, and availability information.",
+                    title: "1. Accurate Listings",
+                    desc: "Sellers must provide truthful and accurate product names, descriptions, prices, quantities, and availability information.",
                   },
                   {
                     num: 2,
-                    title: isFilipino ? "Naaangkop na mga Produkto" : "2. Appropriate Products",
-                    desc: isFilipino
-                      ? "All product listings must comply with applicable laws and Kaani Web marketplace policies."
-                      : "All product listings must comply with applicable laws and Kaani Web marketplace policies.",
+                    title: "2. Appropriate Products",
+                    desc: "All product listings must comply with applicable laws and Kaani Web marketplace policies.",
                   },
                   {
                     num: 3,
-                    title: isFilipino ? "Pananagutan ng Nagbebenta" : "3. Seller Responsibility",
-                    desc: isFilipino
-                      ? "Sellers are responsible for the accuracy of their listings and for communicating clearly with potential buyers."
-                      : "Sellers are responsible for the accuracy of their listings and for communicating clearly with potential buyers.",
+                    title: "3. Seller Responsibility",
+                    desc: "Sellers are responsible for the accuracy of their listings and for communicating clearly with potential buyers.",
                   },
                   {
                     num: 4,
-                    title: isFilipino ? "Magalang na Transaksyon" : "4. Respectful Transactions",
-                    desc: isFilipino
-                      ? "Buyers and sellers must communicate honestly, respectfully, and professionally throughout their transactions."
-                      : "Buyers and sellers must communicate honestly, respectfully, and professionally throughout their transactions.",
+                    title: "4. Respectful Transactions",
+                    desc: "Buyers and sellers must communicate honestly, respectfully, and professionally throughout their transactions.",
                   },
                   {
                     num: 5,
-                    title: isFilipino ? "Pagsusuri sa Listing" : "5. Listing Review",
-                    desc: isFilipino
-                      ? "Kaani Web administrators may review, reject, hide, or remove product listings that violate marketplace rules or applicable policies."
-                      : "Kaani Web administrators may review, reject, hide, or remove product listings that violate marketplace rules or applicable policies.",
+                    title: "5. Listing Review",
+                    desc: "Kaani Web administrators may review, reject, hide, or remove product listings that violate marketplace rules or applicable policies.",
                   },
                   {
                     num: 6,
-                    title: isFilipino ? "Privacy ng Nagbebenta" : "6. Seller Privacy",
-                    desc: isFilipino
-                      ? "Only seller information intended for public display should appear in the marketplace. Sellers should not submit unnecessary personal or sensitive information."
-                      : "Only seller information intended for public display should appear in the marketplace. Sellers should not submit unnecessary personal or sensitive information.",
+                    title: "6. Seller Privacy",
+                    desc: "Only seller information intended for public display should appear in the marketplace. Sellers should not submit unnecessary personal or sensitive information.",
                   },
                   {
                     num: 7,
-                    title: isFilipino ? "Availability ng Produkto" : "7. Product Availability",
-                    desc: isFilipino
-                      ? "Sellers must keep product availability information updated. Products that are sold out or temporarily unavailable should be marked accordingly."
-                      : "Sellers must keep product availability information updated. Products that are sold out or temporarily unavailable should be marked accordingly.",
+                    title: "7. Product Availability",
+                    desc: "Sellers must keep product availability information updated. Products that are sold out or temporarily unavailable should be marked accordingly.",
                   },
                   {
                     num: 8,
-                    title: isFilipino ? "Pag-uulat ng mga Paglabag" : "8. Reporting Violations",
-                    desc: isFilipino
-                      ? "Users may report listings or marketplace activities they believe violate these rules. Reports should be submitted honestly and used for legitimate concerns."
-                      : "Users may report listings or marketplace activities they believe violate these rules. Reports should be submitted honestly and used for legitimate concerns.",
+                    title: "8. Reporting Violations",
+                    desc: "Users may report listings or marketplace activities they believe violate these rules. Reports should be submitted honestly and used for legitimate concerns.",
                   },
                 ].map((r) => (
                   <div
@@ -2209,11 +1871,11 @@ const Market = () => {
                     <div>
                       <h4 className="font-bold text-xs text-slate-900 flex items-center gap-1.5 mb-1.5">
                         <span className="w-5 h-5 rounded-full bg-emerald-700 text-white flex items-center justify-center text-[10px] font-extrabold shrink-0">
-                          {r.num}
+                          {tx(r.num)}
                         </span>
-                        <span>{r.title}</span>
+                        <span>{tx(r.title)}</span>
                       </h4>
-                      <p className="text-[11px] text-slate-600 leading-relaxed">{r.desc}</p>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">{tx(r.desc)}</p>
                     </div>
                   </div>
                 ))}
@@ -2222,12 +1884,10 @@ const Market = () => {
               <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-900 to-teal-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
                 <div className="space-y-0.5">
                   <h5 className="font-bold text-xs text-emerald-200 uppercase tracking-wider">
-                    {isFilipino ? "Kasunduan sa mga Tuntunin" : "Agreement to the Rules"}
+                    {tx("Agreement to the Rules")}
                   </h5>
                   <p className="text-xs text-emerald-100/90 leading-snug">
-                    {isFilipino
-                      ? "Sa pagsusumite ng produkto, kinukumpirma mo na iyong nabasa at sumasang-ayon ka sa pagsunod sa Mga Tuntunin sa Pamilihan ng Kaani Web."
-                      : "By submitting a product listing, you confirm that you have read and agree to follow the Kaani Web Marketplace Rules."}
+                    {tx("By submitting a product listing, you confirm that you have read and agree to follow the Kaani Web Marketplace Rules.")}
                   </p>
                 </div>
                 <Button
@@ -2235,7 +1895,7 @@ const Market = () => {
                   className="bg-white text-emerald-950 hover:bg-emerald-50 text-xs font-bold rounded-xl px-4 py-2 shrink-0 shadow-xs"
                 >
                   <PlusCircle className="h-3.5 w-3.5 mr-1" />
-                  {isFilipino ? "Ilista ang Ani" : "List Your Harvest"}
+                  {tx("List Your Harvest")}
                 </Button>
               </div>
             </div>

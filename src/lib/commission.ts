@@ -34,7 +34,7 @@ const TRANSACTIONS_STORAGE_KEY = 'kaani_market_transactions';
  * Automatically rounds to 2 decimal places.
  */
 export function calculateCommission(price: number): CommissionBreakdown {
-  const safePrice = Math.max(0, isNaN(price) ? 0 : price);
+  const safePrice = Math.round(Math.max(0, !Number.isFinite(price) ? 0 : price) * 100) / 100;
   const platformFee = Math.round(safePrice * MARKET_COMMISSION_RATE * 100) / 100;
   const sellerNet = Math.round((safePrice - platformFee) * 100) / 100;
 
@@ -110,7 +110,7 @@ export function recordMarketTransaction(params: {
     sellerNet: breakdown.sellerNet,
     commissionRate: breakdown.rate,
     timestamp: new Date().toISOString(),
-    status: 'completed',
+    status: 'pending',
   };
 
   try {
@@ -118,6 +118,7 @@ export function recordMarketTransaction(params: {
     localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(existing.slice(0, 100)));
   } catch (err) {
     console.warn('Could not persist market transaction:', err);
+    return { success: false, transaction: transactionRecord, isDuplicate: false };
   }
 
   return { success: true, transaction: transactionRecord, isDuplicate: false };

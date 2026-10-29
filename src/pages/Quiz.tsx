@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { getCurrentUser } from "@/lib/auth";
+import { useText } from "@/lib/translate";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Trophy, 
@@ -23,7 +25,7 @@ import {
   Fish,
   Scale,
   Cpu
-} from "lucide-react";
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,10 +42,12 @@ type QuizMode = "practice" | "timed";
 
 const CATEGORIES = [
   { id: "all", name: "All Module Questions", icon: Sparkles, color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  { id: "Fisheries", name: "Fisheries & Marine", icon: Fish, color: "bg-sky-100 text-sky-800 border-sky-200" },
+  { id: "Fisheries & Marine", name: "Fisheries & Marine", icon: Fish, color: "bg-sky-100 text-sky-800 border-sky-200" },
 ];
 
 const Quiz = () => {
+  const autoStarted = useRef(false);
+  const tx = useText();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -80,20 +84,14 @@ const Quiz = () => {
 
   // Initialize current user name & status
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('user');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setCurrentUser(parsed);
-        setPlayerName(parsed.name || parsed.email || "Learner");
-      } else {
-        setCurrentUser(null);
-        setPlayerName("Agri Explorer");
-      }
-    } catch {
-      setCurrentUser(null);
-      setPlayerName("Agri Explorer");
-    }
+    let mounted = true;
+    const refreshUser = async () => {
+      const user = await getCurrentUser();
+      if (mounted) { setCurrentUser(user); setPlayerName(user?.name || "Agri Explorer"); }
+    };
+    refreshUser();
+    window.addEventListener("auth-change", refreshUser);
+    return () => { mounted = false; window.removeEventListener("auth-change", refreshUser); };
   }, []);
 
   // Load module knowledge recall questions pool
@@ -106,10 +104,10 @@ const Quiz = () => {
 
       if (!error && data && data.length > 0) {
         // Merge Supabase questions with our authoritative default module questions
-        const existingIds = new Set(data.map((q: any) => q.id));
+        const existingIds = new Set(DEFAULT_QUIZ_QUESTIONS.map((q) => q.id));
         const merged = [
           ...DEFAULT_QUIZ_QUESTIONS,
-          ...data.filter((q: any) => !existingIds.has(q.id) && q.question && q.question.length > 10)
+          ...data.filter((q) => !existingIds.has(q.id) && q.question && q.question.length > 10)
         ];
         setAllQuestions(merged);
       } else {
@@ -124,31 +122,6 @@ const Quiz = () => {
     loadQuestions();
   }, [loadQuestions]);
 
-  // Start quiz triggered by query param
-  useEffect(() => {
-    if (searchParams.get('start') === 'true' && !isQuizActive) {
-      handleStartQuiz();
-    }
-  }, [searchParams, allQuestions]);
-
-  // Handle Timed Mode Countdown
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isQuizActive && timerActive && quizMode === "timed" && !showExplanation && !isQuizCompleted) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            handleTimeExpired();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isQuizActive, timerActive, quizMode, showExplanation, isQuizCompleted, currentIndex]);
-
   const handleTimeExpired = () => {
     if (soundEnabled) playQuizSound('incorrect');
     setSelectedAnswer("NONE");
@@ -157,8 +130,8 @@ const Quiz = () => {
     setShowExplanation(true);
     setStreak(0);
     toast({
-      title: "Time's Up!",
-      description: "Let's review the correct answer and move on.",
+      title: tx("Time's Up!"),
+      description: tx("Let's review the correct answer and move on."),
       variant: "destructive"
     });
   };
@@ -264,29 +237,6 @@ const Quiz = () => {
     setShowExplanation(true);
   };
 
-  // Keyboard shortcut listener for option selection
-  useEffect(() => {
-    if (!isQuizActive || isQuizCompleted) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (["1", "a", "A"].includes(e.key)) handleAnswerSelect("A");
-      if (["2", "b", "B"].includes(e.key)) handleAnswerSelect("B");
-      if (["3", "c", "C"].includes(e.key)) handleAnswerSelect("C");
-      if (["4", "d", "D"].includes(e.key)) handleAnswerSelect("D");
-
-      if (e.key === "Enter" && showExplanation) {
-        if (currentIndex < activeQuestions.length - 1) {
-          handleNextQuestion();
-        } else {
-          handleFinishQuiz();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isQuizActive, isQuizCompleted, showExplanation, currentIndex, activeQuestions.length]);
-
   const handleNextQuestion = () => {
     if (currentIndex < activeQuestions.length - 1) {
       const nextIdx = currentIndex + 1;
@@ -338,18 +288,72 @@ const Quiz = () => {
     if (!isGuest && currentUser?.id) {
       const validUserName = playerName.trim() || currentUser.name || "Learner";
       try {
-        await supabase.from('quiz_scores').insert({
+        const { error } = await supabase.from('quiz_scores').insert({
           user_id: currentUser.id,
           user_name: validUserName,
           score: finalPercent,
           total_questions: activeQuestions.length,
           correct_answers: correct,
         });
+        if (error) console.warn("Score saved on this device only", error);
       } catch (e) {
         console.warn("Could not save score to remote quiz_scores:", e);
       }
     }
   };
+
+  // Start quiz triggered by query param
+  useEffect(() => {
+    if (searchParams.get('start') !== 'true') autoStarted.current = false;
+    if (searchParams.get('start') === 'true' && !isQuizActive && !autoStarted.current) {
+      autoStarted.current = true;
+      handleStartQuiz();
+    }
+  });
+
+  // Handle Timed Mode Countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isQuizActive && timerActive && quizMode === "timed" && !showExplanation && !isQuizCompleted) {
+      interval = setInterval(() => {
+        if (timeLeft <= 1) {
+          setTimeLeft(0);
+          handleTimeExpired();
+        } else {
+          setTimeLeft(timeLeft - 1);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  });
+
+  // Keyboard shortcut listener for option selection
+  useEffect(() => {
+    if (!isQuizActive || isQuizCompleted) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showExitDialog || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement;
+      if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (e.key === 'Enter' && target.closest('button, a')) return;
+      if (["1", "a", "A"].includes(e.key)) handleAnswerSelect("A");
+      if (["2", "b", "B"].includes(e.key)) handleAnswerSelect("B");
+      if (["3", "c", "C"].includes(e.key)) handleAnswerSelect("C");
+      if (["4", "d", "D"].includes(e.key)) handleAnswerSelect("D");
+
+      if (e.key === "Enter" && showExplanation) {
+        if (currentIndex < activeQuestions.length - 1) {
+          handleNextQuestion();
+        } else {
+          handleFinishQuiz();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  });
+
 
   const currentQuestion = activeQuestions[currentIndex];
   const progressPercent = activeQuestions.length > 0 ? ((currentIndex + 1) / activeQuestions.length) * 100 : 0;
@@ -395,7 +399,7 @@ const Quiz = () => {
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-emerald-200 text-kaani-primary text-xs md:text-sm font-bold">
                     <Sparkles className="h-4 w-4 text-emerald-600" />
-                    <span>Interactive Agri-Fisheries Arena</span>
+                    <span>{tx("Interactive Agri-Fisheries Arena")}</span>
                   </div>
 
                   {/* Sound Toggle */}
@@ -406,12 +410,12 @@ const Quiz = () => {
                     {soundEnabled ? (
                       <>
                         <Volume2 className="h-4 w-4 text-emerald-600" />
-                        <span>Sound Effects On</span>
+                        <span>{tx("Sound Effects On")}</span>
                       </>
                     ) : (
                       <>
                         <VolumeX className="h-4 w-4 text-slate-400" />
-                        <span>Sound Effects Off</span>
+                        <span>{tx("Sound Effects Off")}</span>
                       </>
                     )}
                   </button>
@@ -419,51 +423,44 @@ const Quiz = () => {
 
                 {/* Headings */}
                 <div className="text-center max-w-3xl mx-auto mb-8">
-                  <h1 className="text-3xl sm:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight leading-tight">
-                    Learning Module <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600">
-                      Knowledge Quiz
-                    </span>
+                  <h1 className="text-3xl sm:text-5xl font-extrabold font-heading text-kaani-dark tracking-tight leading-tight">{tx("Learning Module ")}<br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600">{tx("Knowledge Quiz")}</span>
                   </h1>
-                  <p className="mt-4 text-base md:text-lg text-muted-foreground leading-relaxed">
-                    Test your understanding of the concepts covered in your learning module materials, earn experience points (XP), and reinforce your mastery!
-                  </p>
+                  <p className="mt-4 text-base md:text-lg text-muted-foreground leading-relaxed">{tx("Test your understanding of the concepts covered in your learning module materials, earn experience points (XP), and reinforce your mastery!")}</p>
                 </div>
 
                 {/* Live Stats Row */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-10">
                   <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-center">
                     <BookOpen className="h-5 w-5 text-emerald-600 mx-auto mb-1.5" />
-                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">{allQuestions.length}+</div>
-                    <div className="text-xs text-muted-foreground font-medium">Curated Questions</div>
+                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">{tx(allQuestions.length)}{tx("+")}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{tx("Curated Questions")}</div>
                   </div>
                   <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-100 text-center">
                     <Lightbulb className="h-5 w-5 text-sky-600 mx-auto mb-1.5" />
-                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">Instant</div>
-                    <div className="text-xs text-muted-foreground font-medium">Clear Explanations</div>
+                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">{tx("Instant")}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{tx("Clear Explanations")}</div>
                   </div>
                   <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-100 text-center">
                     <Flame className="h-5 w-5 text-amber-600 mx-auto mb-1.5" />
-                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">Combos</div>
-                    <div className="text-xs text-muted-foreground font-medium">Streak XP Multipliers</div>
+                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">{tx("Combos")}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{tx("Streak XP Multipliers")}</div>
                   </div>
                   <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-100 text-center">
                     <CheckCircle2 className="h-5 w-5 text-teal-600 mx-auto mb-1.5" />
-                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">Recall Pool</div>
-                    <div className="text-xs text-muted-foreground font-medium">Direct Module Facts</div>
+                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">{tx("Recall Pool")}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{tx("Direct Module Facts")}</div>
                   </div>
                 </div>
 
                 {/* Quiz Customizer / Filters */}
                 <div className="bg-emerald-50/40 rounded-2xl p-6 border border-emerald-100 mb-10">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-kaani-dark mb-4 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-kaani-primary" />
-                    Customize Your Knowledge Recall Session
-                  </h3>
+                    <Sparkles className="h-4 w-4 text-kaani-primary" />{tx("Customize Your Knowledge Recall Session")}</h3>
 
                   {/* Category Filter */}
                   <div className="space-y-2 mb-5">
-                    <label className="text-xs font-semibold text-muted-foreground">Select Category</label>
+                    <label className="text-xs font-semibold text-muted-foreground">{tx("Select Category")}</label>
                     <div className="flex flex-wrap gap-2">
                       {CATEGORIES.map((cat) => {
                         const Icon = cat.icon;
@@ -479,7 +476,7 @@ const Quiz = () => {
                             }`}
                           >
                             <Icon className="h-4 w-4" />
-                            <span>{cat.name}</span>
+                            <span>{tx(cat.name)}</span>
                           </button>
                         );
                       })}
@@ -489,7 +486,7 @@ const Quiz = () => {
                   {/* Difficulty & Mode Selector */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-2">Difficulty</label>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-2">{tx("Difficulty")}</label>
                       <div className="grid grid-cols-4 gap-2">
                         {["all", "Easy", "Medium", "Hard"].map((diff) => (
                           <button
@@ -501,14 +498,14 @@ const Quiz = () => {
                                 : "bg-white text-muted-foreground border-emerald-100 hover:bg-emerald-50"
                             }`}
                           >
-                            {diff === "all" ? "All Levels" : diff}
+                            {tx(diff === "all" ? "All Levels" : diff)}
                           </button>
                         ))}
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-2">Recall Mode</label>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-2">{tx("Recall Mode")}</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           onClick={() => setQuizMode("practice")}
@@ -519,7 +516,7 @@ const Quiz = () => {
                           }`}
                         >
                           <BookOpen className="h-3.5 w-3.5" />
-                          <span>Self-Paced Practice</span>
+                          <span>{tx("Self-Paced Practice")}</span>
                         </button>
                         <button
                           onClick={() => setQuizMode("timed")}
@@ -530,7 +527,7 @@ const Quiz = () => {
                           }`}
                         >
                           <TimerIcon className="h-3.5 w-3.5" />
-                          <span>Quick Recall (25s)</span>
+                          <span>{tx("Quick Recall (25s)")}</span>
                         </button>
                       </div>
                     </div>
@@ -546,7 +543,7 @@ const Quiz = () => {
                     className="bg-kaani-primary hover:bg-kaani-dark text-white font-bold text-base px-8 py-6 rounded-2xl shadow-elevated transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
                   >
                     <Sparkles className="h-5 w-5 text-emerald-200 animate-spin-slow" />
-                    <span>Start Knowledge Check</span>
+                    <span>{tx("Start Knowledge Check")}</span>
                   </Button>
 
                   <Button
@@ -556,7 +553,7 @@ const Quiz = () => {
                     className="border-emerald-200 text-kaani-dark hover:bg-emerald-50 font-bold text-base px-6 py-6 rounded-2xl flex items-center justify-center gap-2"
                   >
                     <BookOpen className="h-5 w-5 text-emerald-700" />
-                    <span>Review Learning Modules</span>
+                    <span>{tx("Review Learning Modules")}</span>
                   </Button>
                 </div>
               </div>
@@ -567,10 +564,8 @@ const Quiz = () => {
                   <Lightbulb className="h-6 w-6" />
                 </div>
                 <div className="text-center sm:text-left">
-                  <h4 className="text-sm font-bold text-sky-950 uppercase tracking-wider">Agricultural Trivia</h4>
-                  <p className="text-sm text-sky-900 mt-1">
-                    Did you know? Mangrove forests in the Philippines can sequester up to 4 times more carbon per hectare than terrestrial tropical rainforests, while providing nursery grounds for over 70% of municipal fish species!
-                  </p>
+                  <h4 className="text-sm font-bold text-sky-950 uppercase tracking-wider">{tx("Agricultural Trivia")}</h4>
+                  <p className="text-sm text-sky-900 mt-1">{tx("Did you know? Mangrove forests in the Philippines can sequester up to 4 times more carbon per hectare than terrestrial tropical rainforests, while providing nursery grounds for over 70% of municipal fish species!")}</p>
                 </div>
               </div>
 
@@ -602,23 +597,17 @@ const Quiz = () => {
                 <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-30 flex items-center justify-center p-4">
                   <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-elevated animate-in zoom-in-95 duration-200">
                     <XCircle className="h-12 w-12 text-rose-500 mx-auto mb-3" />
-                    <h3 className="text-lg font-bold text-slate-900">Exit Active Quiz?</h3>
-                    <p className="text-sm text-muted-foreground mt-2 mb-6">
-                      Your current score and active streak will be lost.
-                    </p>
+                    <h3 className="text-lg font-bold text-slate-900">{tx("Exit Active Quiz?")}</h3>
+                    <p className="text-sm text-muted-foreground mt-2 mb-6">{tx("Your current score and active streak will be lost.")}</p>
                     <div className="grid grid-cols-2 gap-3">
-                      <Button variant="outline" onClick={() => setShowExitDialog(false)}>
-                        Keep Playing
-                      </Button>
+                      <Button variant="outline" onClick={() => setShowExitDialog(false)}>{tx("Keep Playing")}</Button>
                       <Button 
                         variant="destructive" 
                         onClick={() => {
                           setShowExitDialog(false);
                           setIsQuizActive(false);
                         }}
-                      >
-                        Exit Quiz
-                      </Button>
+                      >{tx("Exit Quiz")}</Button>
                     </div>
                   </div>
                 </div>
@@ -627,20 +616,19 @@ const Quiz = () => {
               {/* Quiz Header Bar */}
               <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-kaani-primary font-heading">
-                    Question {currentIndex + 1} of {activeQuestions.length}
+                  <span className="text-sm font-bold text-kaani-primary font-heading">{tx("Question ")}{tx(currentIndex + 1)}{tx(" of ")}{tx(activeQuestions.length)}
                   </span>
                   
                   {currentQuestion && (
                     <Badge variant="outline" className="hidden sm:inline-flex items-center gap-1 text-xs border-emerald-200 bg-emerald-50 text-emerald-800">
-                      {getCategoryIcon(currentQuestion.category)}
-                      <span>{currentQuestion.category}</span>
+                      {tx(getCategoryIcon(currentQuestion.category))}
+                      <span>{tx(currentQuestion.category)}</span>
                     </Badge>
                   )}
                   
                   {currentQuestion && (
                     <Badge className="text-xs" variant={currentQuestion.difficulty === 'Hard' ? 'destructive' : currentQuestion.difficulty === 'Medium' ? 'secondary' : 'default'}>
-                      {currentQuestion.difficulty}
+                      {tx(currentQuestion.difficulty)}
                     </Badge>
                   )}
                 </div>
@@ -650,7 +638,7 @@ const Quiz = () => {
                   {streak > 1 && (
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-extrabold animate-bounce">
                       <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-600" />
-                      <span>{streak}x Streak!</span>
+                      <span>{tx(streak)}{tx("x Streak!")}</span>
                     </div>
                   )}
 
@@ -660,7 +648,7 @@ const Quiz = () => {
                       timeLeft <= 5 ? "bg-rose-100 text-rose-700 border border-rose-300 animate-pulse" : "bg-slate-100 text-slate-700"
                     }`}>
                       <TimerIcon className="h-3.5 w-3.5" />
-                      <span>{timeLeft}s</span>
+                      <span>{tx(timeLeft)}{tx("s")}</span>
                     </div>
                   )}
 
@@ -668,7 +656,7 @@ const Quiz = () => {
                   <button
                     onClick={() => setSoundEnabled(!soundEnabled)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-kaani-primary transition-colors"
-                    title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+                    title={tx(soundEnabled ? "Mute sounds" : "Enable sounds")}
                   >
                     {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                   </button>
@@ -677,7 +665,7 @@ const Quiz = () => {
                   <button
                     onClick={() => setShowExitDialog(true)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
-                    title="Exit quiz"
+                    title={tx("Exit quiz")}
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -701,17 +689,15 @@ const Quiz = () => {
                       <Trophy className="h-16 w-16 text-amber-500 animate-bounce" />
                     </div>
                     
-                    <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">
-                      Quiz Completed!
-                    </h2>
+                    <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">{tx("Quiz Completed!")}</h2>
 
                     <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-bold ${performanceGrade.color}`}>
                       <Award className="h-4 w-4" />
-                      <span>{performanceGrade.title}</span>
+                      <span>{tx(performanceGrade.title)}</span>
                     </div>
 
                     <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-                      {performanceGrade.desc}
+                      {tx(performanceGrade.desc)}
                     </p>
                   </div>
 
@@ -719,30 +705,28 @@ const Quiz = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-center">
                       <div className="text-3xl font-extrabold font-heading text-emerald-800">
-                        {Math.round(score)}%
-                      </div>
-                      <div className="text-xs text-emerald-700 font-semibold mt-1">Recall Accuracy</div>
+                        {tx(Math.round(score))}{tx("%")}</div>
+                      <div className="text-xs text-emerald-700 font-semibold mt-1">{tx("Recall Accuracy")}</div>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-sky-50 border border-sky-100 text-center">
                       <div className="text-3xl font-extrabold font-heading text-sky-800">
-                        {correctCount}/{activeQuestions.length}
+                        {tx(correctCount)}{tx("/")}{tx(activeQuestions.length)}
                       </div>
-                      <div className="text-xs text-sky-700 font-semibold mt-1">Correct Answers</div>
+                      <div className="text-xs text-sky-700 font-semibold mt-1">{tx("Correct Answers")}</div>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-teal-50 border border-teal-100 text-center">
                       <div className="text-2xl font-extrabold font-heading text-teal-800 truncate">
-                        {score >= 80 ? "Mastered" : score >= 60 ? "Reviewing" : "Re-read"}
+                        {tx(score >= 80 ? "Mastered" : score >= 60 ? "Reviewing" : "Re-read")}
                       </div>
-                      <div className="text-xs text-teal-700 font-semibold mt-1">Recall Status</div>
+                      <div className="text-xs text-teal-700 font-semibold mt-1">{tx("Recall Status")}</div>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 text-center">
                       <div className="text-3xl font-extrabold font-heading text-purple-800">
-                        {maxStreak}x
-                      </div>
-                      <div className="text-xs text-purple-700 font-semibold mt-1">Best Consecutive</div>
+                        {tx(maxStreak)}{tx("x")}</div>
+                      <div className="text-xs text-purple-700 font-semibold mt-1">{tx("Best Consecutive")}</div>
                     </div>
                   </div>
 
@@ -754,17 +738,15 @@ const Quiz = () => {
                           <BookOpen className="h-5 w-5" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-bold text-slate-900">Guest Review Session</h4>
-                          <p className="text-xs text-slate-600">Sign in to save your recall progress and keep track of reviewed modules.</p>
+                          <h4 className="text-sm font-bold text-slate-900">{tx("Guest Review Session")}</h4>
+                          <p className="text-xs text-slate-600">{tx("Sign in to save your recall progress and keep track of reviewed modules.")}</p>
                         </div>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => navigate("/auth?mode=login")}
                         className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold shrink-0 shadow-xs"
-                      >
-                        Sign In to Save History
-                      </Button>
+                      >{tx("Sign In to Save History")}</Button>
                     </div>
                   ) : (
                     <div className="p-5 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -774,12 +756,11 @@ const Quiz = () => {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold text-emerald-950">Knowledge Progress Recorded</h4>
-                            <Badge className="bg-emerald-600 text-white text-[10px]">Saved to Profile</Badge>
+                            <h4 className="text-sm font-bold text-emerald-950">{tx("Knowledge Progress Recorded")}</h4>
+                            <Badge className="bg-emerald-600 text-white text-[10px]">{tx("Saved to Profile")}</Badge>
                           </div>
                           <p className="text-xs text-emerald-800">
-                            {playerName.trim() || currentUser?.name} • Score: {Math.round(score)}% • Reviewed {activeQuestions.length} questions from Unit 1: Fish Physiology
-                          </p>
+                            {tx(playerName.trim() || currentUser?.name)}{tx(" • Score: ")}{tx(Math.round(score))}{tx("% • Reviewed ")}{tx(activeQuestions.length)}{tx(" questions from Unit 1: Fish Physiology")}</p>
                         </div>
                       </div>
                       <Button
@@ -787,9 +768,7 @@ const Quiz = () => {
                         variant="outline"
                         onClick={() => navigate("/learning")}
                         className="border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded-xl font-bold shrink-0"
-                      >
-                        Review Module File
-                      </Button>
+                      >{tx("Review Module File")}</Button>
                     </div>
                   )}
 
@@ -800,9 +779,7 @@ const Quiz = () => {
                       className="w-full p-4 flex items-center justify-between text-left bg-white hover:bg-slate-50 font-bold text-sm text-slate-800"
                     >
                       <span className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-kaani-primary" />
-                        Review All {activeQuestions.length} Questions & Explanations
-                      </span>
+                        <BookOpen className="h-4 w-4 text-kaani-primary" />{tx("Review All ")}{tx(activeQuestions.length)}{tx(" Questions & Explanations")}</span>
                       {showReview ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
 
@@ -814,27 +791,25 @@ const Quiz = () => {
                           return (
                             <div key={q.id} className="p-4 bg-white rounded-xl border border-slate-200 space-y-2">
                               <div className="flex items-start justify-between gap-2">
-                                <span className="text-xs font-bold text-slate-500">#{idx + 1}</span>
+                                <span className="text-xs font-bold text-slate-500">{tx("#")}{tx(idx + 1)}</span>
                                 <Badge variant={wasCorrect ? "default" : "destructive"} className="text-[10px]">
-                                   {wasCorrect ? "Correct" : "Incorrect"}
+                                   {tx(wasCorrect ? "Correct" : "Incorrect")}
                                 </Badge>
                               </div>
-                              <p className="text-sm font-semibold text-slate-900">{q.question}</p>
+                              <p className="text-sm font-semibold text-slate-900">{tx(q.question)}</p>
                               
                               <div className="text-xs space-y-1 pt-1">
-                                <p className={wasCorrect ? "text-emerald-700 font-medium" : "text-rose-700 font-medium"}>
-                                  Your Answer: {userAns ? `(${userAns}) ${q[`choice_${userAns.toLowerCase()}` as keyof QuizQuestion] || "Timed out"}` : "Unanswered"}
+                                <p className={wasCorrect ? "text-emerald-700 font-medium" : "text-rose-700 font-medium"}>{tx("Your Answer: ")}{tx(userAns ? `(${userAns}) ${q[`choice_${userAns.toLowerCase()}` as keyof QuizQuestion] || "Timed out"}` : "Unanswered")}
                                 </p>
                                 {!wasCorrect && (
-                                  <p className="text-emerald-700 font-medium">
-                                    Correct Answer: ({q.correct_answer}) {q[`choice_${q.correct_answer.toLowerCase()}` as keyof QuizQuestion]}
+                                  <p className="text-emerald-700 font-medium">{tx("Correct Answer: (")}{tx(q.correct_answer)}{tx(") ")}{tx(q[`choice_${q.correct_answer.toLowerCase()}` as keyof QuizQuestion])}
                                   </p>
                                 )}
                               </div>
 
                               {q.explanation && (
                                 <p className="text-xs text-muted-foreground bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-2">
-                                  <strong>Concept Recall:</strong> {q.explanation}
+                                  <strong>{tx("Concept Recall:")}</strong> {tx(q.explanation)}
                                 </p>
                               )}
                             </div>
@@ -852,25 +827,21 @@ const Quiz = () => {
                       className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl flex items-center justify-center gap-2 font-bold"
                     >
                       <RotateCcw className="h-4 w-4" />
-                      <span>Try Another Recall Attempt</span>
+                      <span>{tx("Try Another Recall Attempt")}</span>
                     </Button>
                     <Button
                       size="lg"
                       variant="outline"
                       onClick={() => setIsQuizActive(false)}
                       className="border-slate-300 rounded-xl font-bold"
-                    >
-                      Select Different Topic
-                    </Button>
+                    >{tx("Select Different Topic")}</Button>
                     <Button
                       size="lg"
                       variant="secondary"
                       onClick={() => navigate("/learning")}
                       className="bg-emerald-100 text-emerald-950 hover:bg-emerald-200 border border-emerald-200 rounded-xl font-bold flex items-center justify-center gap-2"
                     >
-                      <BookOpen className="h-4 w-4 text-emerald-700" />
-                      Back to Learning Modules
-                    </Button>
+                      <BookOpen className="h-4 w-4 text-emerald-700" />{tx("Back to Learning Modules")}</Button>
                   </div>
 
                 </div>
@@ -884,7 +855,7 @@ const Quiz = () => {
                     {/* Question Prompt */}
                     <div>
                       <h2 className="text-xl md:text-2xl font-bold font-heading text-slate-900 leading-snug">
-                        {currentQuestion.question}
+                        {tx(currentQuestion.question)}
                       </h2>
                     </div>
 
@@ -915,16 +886,19 @@ const Quiz = () => {
                         }
 
                         return (
-                          <div
+                          <button
+                            type="button"
+                            aria-pressed={isChosen}
+                            disabled={showExplanation}
                             key={letter}
                             onClick={() => handleAnswerSelect(letter)}
-                            className={`p-4 md:p-5 rounded-2xl border-2 transition-all duration-200 flex items-start gap-3.5 select-none ${cardStyle}`}
+                            className={`w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-all duration-200 flex items-start gap-3.5 select-none ${cardStyle}`}
                           >
                             <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${badgeStyle}`}>
-                              {letter}
+                              {tx(letter)}
                             </div>
                             <div className="flex-1 text-sm md:text-base font-medium text-slate-800 leading-relaxed pt-0.5">
-                              {optionText}
+                              {tx(optionText)}
                             </div>
                             {showExplanation && isTheCorrectOne && (
                               <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
@@ -932,7 +906,7 @@ const Quiz = () => {
                             {showExplanation && isChosen && !isTheCorrectOne && (
                               <XCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
                             )}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -946,24 +920,24 @@ const Quiz = () => {
                           {isCorrect ? (
                             <>
                               <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                              <span className="text-emerald-900">Correct! Well done.</span>
+                              <span className="text-emerald-900">{tx("Correct! Well done.")}</span>
                             </>
                           ) : (
                             <>
                               <XCircle className="h-5 w-5 text-rose-500" />
-                              <span className="text-slate-900">The correct answer is Option {currentQuestion.correct_answer}.</span>
+                              <span className="text-slate-900">{tx("The correct answer is Option ")}{tx(currentQuestion.correct_answer)}{tx(".")}</span>
                             </>
                           )}
                         </div>
 
                         <p className="text-sm text-slate-700 leading-relaxed">
-                          {currentQuestion.explanation}
+                          {tx(currentQuestion.explanation)}
                         </p>
 
                         {currentQuestion.fun_fact && (
                           <div className="mt-3 pt-3 border-t border-emerald-200/60 flex items-start gap-2 text-xs text-slate-600">
                             <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                            <span><strong>Did you know?</strong> {currentQuestion.fun_fact}</span>
+                            <span><strong>{tx("Did you know?")}</strong> {tx(currentQuestion.fun_fact)}</span>
                           </div>
                         )}
                       </div>
@@ -978,12 +952,10 @@ const Quiz = () => {
                         className="rounded-xl flex items-center gap-1.5"
                       >
                         <ChevronLeft className="h-4 w-4" />
-                        <span>Previous</span>
+                        <span>{tx("Previous")}</span>
                       </Button>
 
-                      <div className="text-xs font-semibold text-muted-foreground hidden sm:block">
-                        Press 1, 2, 3, 4 or Enter on keyboard
-                      </div>
+                      <div className="text-xs font-semibold text-muted-foreground hidden sm:block">{tx("Press 1, 2, 3, 4 or Enter on keyboard")}</div>
 
                       {isLastQuestion ? (
                         <Button
@@ -991,7 +963,7 @@ const Quiz = () => {
                           disabled={!showExplanation}
                           className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl flex items-center gap-2 font-bold px-6 shadow-md"
                         >
-                          <span>Complete & See Score</span>
+                          <span>{tx("Complete & See Score")}</span>
                           <Trophy className="h-4 w-4 text-amber-300" />
                         </Button>
                       ) : (
@@ -1000,7 +972,7 @@ const Quiz = () => {
                           disabled={!showExplanation}
                           className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl flex items-center gap-1.5 font-bold px-6 shadow-md"
                         >
-                          <span>Next</span>
+                          <span>{tx("Next")}</span>
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       )}

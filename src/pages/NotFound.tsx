@@ -1,11 +1,13 @@
+import { useText } from "@/lib/translate";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { Sprout, ArrowLeft, Home, Sparkles } from "lucide-react";
+import { Sprout, ArrowLeft, Home, Sparkles } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const NotFound = () => {
+  const tx = useText();
   const location = useLocation();
 
   useEffect(() => {
@@ -23,24 +25,22 @@ const NotFound = () => {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-6xl font-black font-heading text-kaani-dark">404</h1>
-            <h2 className="text-xl font-bold font-heading text-slate-800">Page Not Found</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Looks like this path hasn't been cultivated yet or the page was moved.
-            </p>
+            <h1 className="text-6xl font-black font-heading text-kaani-dark">{tx("404")}</h1>
+            <h2 className="text-xl font-bold font-heading text-slate-800">{tx("Page Not Found")}</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">{tx("Looks like this path hasn't been cultivated yet or the page was moved.")}</p>
           </div>
 
           <div className="flex flex-col gap-2.5 pt-2">
             <Button className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl py-5 font-bold" asChild>
               <Link to="/" className="flex items-center justify-center gap-2">
                 <Home className="h-4 w-4" />
-                <span>Return to Homepage</span>
+                <span>{tx("Return to Homepage")}</span>
               </Link>
             </Button>
             <Button variant="outline" className="border-emerald-200 rounded-xl py-5 font-bold" asChild>
               <Link to="/quiz" className="flex items-center justify-center gap-2">
                 <Sparkles className="h-4 w-4 text-amber-500" />
-                <span>Play Quiz Arena Instead</span>
+                <span>{tx("Play Quiz Arena Instead")}</span>
               </Link>
             </Button>
           </div>
