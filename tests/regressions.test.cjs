@@ -411,3 +411,45 @@ test('three-language translation works across navigation, modules, forms, errors
   assert.equal(translateText('ambot', 'en'), "I don't know");
   assert.equal(translateText('ambot', 'fil'), 'Hindi ko alam');
 });
+
+
+test('seller monthly commissions use completed own sales, Manila months and verified payments only', () => {
+  const { monthlyCommissions, productCommissionSummary, commissionCsv, closedBillingMonth } = load('src/lib/seller-dashboard.ts', { './supabase': {}, './products': {} });
+  const base = { id:'o', seller_id:'seller', product_id:'fish', product_name:'Fish', total:100, quantity:2, status:'Completed', completed_at:'2026-10-31T16:30:00Z', commission:5, commission_rate:0.05, due_date:'2026-11-30' };
+  const orders = [base, {...base,id:'o2',total:200,quantity:3,commission:10}, {...base,status:'Cancelled',commission:999}, {...base,seller_id:'other',commission:999}];
+  const result = monthlyCommissions(orders, [{month:'2026-11-01',amount:2,status:'Paid'}, {month:'2026-11-01',amount:5,status:'Pending Verification'}, {month:'2026-11-01',amount:50,status:'Rejected'}], 'seller');
+  assert.equal(result.length,1); assert.equal(result[0].month,'2026-11-01'); assert.equal(result[0].sales,300); assert.equal(result[0].commission,15); assert.equal(result[0].balance,13); assert.equal(result[0].pending,5);
+  assert.deepEqual(productCommissionSummary(result[0].orders),[{name:'Fish',sales:300,commission:15,quantity:5}]);
+  assert.ok(commissionCsv([{...base,product_name:'=HYPERLINK("bad")'}]).includes("' =".replace(' ','')));
+  assert.equal(closedBillingMonth('2026-10-01',new Date('2026-10-31T16:00:00Z')),true);
+  assert.equal(closedBillingMonth('2026-11-01',new Date('2026-10-31T16:00:00Z')),false);
+});
+
+test('order submission validates input and only submits product id and buyer details, only the expected price, never authoritative totals or seller identity', async () => {
+  const calls=[]; const { placeOrder }=load('src/lib/seller-dashboard.ts', {'./products':{},'./supabase':{supabase:{rpc:async(...args)=>{calls.push(args);return {error:null};}}}});
+  await assert.rejects(placeOrder('id','product',0,'Buyer','09123456789',100));
+  await assert.rejects(placeOrder('id','product',1.0001,'Buyer','09123456789',100));
+  assert.equal(calls.length,0);
+  await placeOrder('id','product',1.5,' Buyer ','09123456789',100);
+  assert.deepEqual(calls,[['place_marketplace_order',{order_id:'id',product:'product',qty:1.5,buyer:'Buyer',phone:'09123456789',expected_price:100}]]);
+});
+
+test('payment submission validates before upload and never submits verification status', async () => {
+  const calls=[]; const { submitPayment }=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{supabase:{auth:{getUser:async()=>({data:{user:{id:'seller'}}})},rpc:async(...args)=>{calls.push(args);return {error:null};}}}});
+  await assert.rejects(submitPayment('id','2026-10-01',0,'1234567890123','2026-11-01',null));
+  await assert.rejects(submitPayment('id','2026-10-01',5,'bad','2026-11-01',null));
+  assert.equal(calls.length,0);
+  await submitPayment('id','2026-10-01',5,'1234567890123','2026-11-01',null);
+  assert.deepEqual(calls,[['submit_commission_payment',{payment_id:'id',billing_month:'2026-10-01',paid:5,reference_number:'1234567890123',paid_on:'2026-11-01',receipt:null}]]);
+});
+
+
+test('receipt retries reuse the same immutable file path and a replaced screenshot gets a different path', async () => {
+  const paths=[]; const requests=[];
+  const { submitPayment }=load('src/lib/seller-dashboard.ts',{'./products':{validatePhoto(){}},'./supabase':{supabase:{auth:{getUser:async()=>({data:{user:{id:'seller'}}})},storage:{from:()=>({upload:async path=>{paths.push(path);return {error:null};}})},rpc:async(name,args)=>{requests.push(args);return {error:null};}}}});
+  const first=new File(['first screenshot'],'receipt.png',{type:'image/png'}), second=new File(['replacement screenshot'],'receipt.png',{type:'image/png'});
+  await submitPayment('id','2026-10-01',5,'1234567890123','2026-11-01',first);
+  await submitPayment('id','2026-10-01',5,'1234567890123','2026-11-01',first);
+  await submitPayment('id','2026-10-01',5,'1234567890123','2026-11-01',second);
+  assert.equal(paths[0],paths[1]); assert.notEqual(paths[1],paths[2]); assert.match(paths[0],/^seller\/id-[a-f0-9]{64}\.png$/); assert.equal(requests[0].receipt,paths[0]);
+});

@@ -57,7 +57,8 @@ import {
   MARKET_LOCATIONS,
   getProductEffectiveStatus
 } from "@/data/marketProducts";
-import { calculateCommission, recordMarketTransaction, formatPeso } from "@/lib/commission";
+import { calculateCommission, formatPeso } from "@/lib/commission";
+import { placeOrder } from '@/lib/seller-dashboard';
 import { useLanguage } from "@/lib/language-context";
 import { 
   ReportCategory, 
@@ -102,6 +103,9 @@ const Market = () => {
   const { toast } = useToast();
   const catalogRequest = useRef(0);
   const mutationPending = useRef(false);
+  const [orderBusy, setOrderBusy] = useState(false);
+  const orderLock = useRef(false);
+  const orderAttempt = useRef<{ signature: string; id: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
@@ -368,17 +372,6 @@ const Market = () => {
     e.preventDefault();
     if (!buyerName || !buyerPhone || !contactProduct) return;
 
-    // Record idempotent market transaction with 5% platform commission
-    const totalAmount = (contactProduct.price || 0) * (Math.max(1, parseInt(orderQty) || 1));
-    recordMarketTransaction({
-      productId: contactProduct.id,
-      productName: contactProduct.name,
-      sellerName: contactProduct.seller,
-      buyerName: buyerName.trim(),
-      price: totalAmount,
-      idempotencyKey: `inquiry-${contactProduct.id}-${buyerPhone.trim()}-${orderQty}-${buyerMessage.trim()}`,
-    });
-
     const phone = contactProduct.sellerPhone.replace(/[^+\d]/g, "");
     const message = `${buyerName.trim()} (${buyerPhone.trim()}): ${contactProduct.name}, ${orderQty} ${contactProduct.unit}. ${buyerMessage.trim()}`;
     window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
@@ -456,6 +449,7 @@ const Market = () => {
               </p>
 
               <div className="pt-2 flex flex-wrap items-center gap-3">
+                <Button asChild variant="secondary"><Link to="/market/dashboard">{tx('My Dashboard')}</Link></Button>
                 <Button
                   onClick={openCreate}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl px-4 py-2 text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
@@ -1057,7 +1051,8 @@ const Market = () => {
                       <label htmlFor="market-field-5" className="text-xs font-bold text-slate-700 block mb-1">{tx("Quantity Needed (")}{tx(contactProduct.stockUnit)}{tx(")")}</label>
                       <input id="market-field-5"
                         type="number"
-                        min="1"
+                        min="0.001"
+                        step="0.001"
                         max={contactProduct.availableStock}
                         value={orderQty}
                         onChange={(e) => setOrderQty(e.target.value)}
@@ -1078,7 +1073,7 @@ const Market = () => {
 
                     {/* Order & Commission Breakdown */}
                     {contactProduct && (() => {
-                      const qty = Math.max(1, parseInt(orderQty) || 1);
+                      const qty = Math.max(0, Number(orderQty) || 0);
                       const subtotal = (contactProduct.price || 0) * qty;
                       const comm = calculateCommission(subtotal);
                       return (
@@ -1099,6 +1094,20 @@ const Market = () => {
                       );
                     })()}
 
+                    <Button type="button" disabled={orderBusy || !ownerId || contactProduct.ownerId === ownerId} className="w-full" onClick={async () => {
+                      if (orderLock.current) return;
+                      orderLock.current = true; setOrderBusy(true);
+                      const signature = JSON.stringify([contactProduct.id, orderQty, buyerName, buyerPhone, contactProduct.price]);
+                      if (orderAttempt.current?.signature !== signature) orderAttempt.current = { signature, id: crypto.randomUUID() };
+                      try {
+                        await placeOrder(orderAttempt.current.id, contactProduct.id, Number(orderQty), buyerName, buyerPhone, contactProduct.price);
+                        orderAttempt.current = null;
+                        toast({ title: 'Order placed. Track it in My Dashboard.' });
+                        setContactProduct(null); void reloadProducts();
+                      } catch (error) { toast({ title: error instanceof Error ? error.message : 'Order could not be placed.', variant: 'destructive' }); }
+                      finally { orderLock.current = false; setOrderBusy(false); }
+                    }}>{tx(orderBusy ? 'Saving...' : 'Place Order')}</Button>
+                    {!ownerId && <Link to="/auth" className="block underline">{tx('Sign in to place an order.')}</Link>}
                     <Button
                       type="submit"
                       className="w-full bg-[#0d533a] hover:bg-[#093c2a] text-white font-bold rounded-xl py-2.5 text-xs shadow-sm transition-all active:scale-98"

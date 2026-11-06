@@ -1,4 +1,5 @@
 // Editorial translations for the built-in website content. Proper names and scientific terms are retained.
+import { sellerTranslations } from './seller-translations';
 const pairs = `
 Home|Unang pahina
 Kaani Market|Pamilihan ng Kaani
@@ -897,4 +898,4 @@ Invalid photo.|Hindi wastong larawan.
 I don't know|Hindi ko alam
 `;
 
-export const filipino: Record<string, string> = Object.fromEntries(pairs.trim().split('\n').map(line => line.split('|').map(part => part.trim())));
+export const filipino: Record<string, string> = { ...Object.fromEntries(pairs.trim().split('\n').map(line => line.split('|').map(part => part.trim()))), ...Object.fromEntries(Object.entries(sellerTranslations).map(([key, values]) => [key, values[0]])) };

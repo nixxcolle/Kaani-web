@@ -89,6 +89,10 @@ Run supabase/diagnostics/modules.sql as the project owner to compare the actual 
 
 Public module catalog reads use a separate session-free Supabase client and the existing anon SELECT policy, including when a member is signed in. Member authentication and private writes continue using the authenticated client. This does not grant new database permissions or expose non-public tables.
 
+## Seller dashboard and monthly commission
+
+The marketplace links to `/market/dashboard`. Run the contents of `supabase/seller-dashboard.sql` once after `supabase/marketplace.sql`; see `supabase/SELLER-DASHBOARD-SETUP.md` for setup and administrator verification. Signed-in buyers place real orders separately from SMS inquiries. Sellers manage their own orders, completed sales, monthly 5% commission and manually verified GCash submissions. Records synchronize through Realtime, refresh/focus and a 30-second visible-page fallback. Commission is recorded on completion and summarized per product in Asia/Manila months; current-month statements accrue until month end. No fake orders, historic SMS imports, automatic money transfers or automatic verification are included. A payment deadline beyond month end has not been specified.
+
 ## Registration without role selection
 
 Register links open /auth?mode=signup directly. The form requires Full Name, Email, Password, and password confirmation. Signup metadata contains only the name; application user/guest objects no longer contain a role. Old /role-selection bookmarks redirect to the account form and legacy role/profile query parameters are ignored. No contact number is collected at registration; sellers provide public contact information when publishing products.

@@ -16,6 +16,7 @@ const Sustainability = lazy(() => import("./pages/Sustainability"));
 const Legal = lazy(() => import("./pages/Legal"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Market = lazy(() => import("./pages/Market"));
+const MarketDashboard = lazy(() => import("./pages/MarketDashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 import RouteExperience from "./components/RouteExperience";
 
@@ -40,6 +41,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/market" element={<Market />} />
+            <Route path="/market/dashboard" element={<MarketDashboard />} />
             <Route path="/learning" element={<Learning />} />
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/modules" element={<ModuleSelection />} />

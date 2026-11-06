@@ -1,4 +1,5 @@
 // Waray-Waray editorial catalog. Scientific names and official agency names are retained.
+import { sellerTranslations } from './seller-translations';
 export const waray: Record<string, string> = {
   "Home": "Syahan nga Pahina",
   "Kaani Market": "Merkado han KaAni",
@@ -894,5 +895,6 @@ export const waray: Record<string, string> = {
   "Product could not be saved.": "Waray matipigan an produkto.",
   "Product could not be deleted.": "Waray makuha an produkto.",
   "Invalid photo.": "Diri husto nga litrato.",
-  "I don't know": "ambot"
+  "I don't know": "ambot",
+  ...Object.fromEntries(Object.entries(sellerTranslations).map(([key, values]) => [key, values[1]]))
 };
