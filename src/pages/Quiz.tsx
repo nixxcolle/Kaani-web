@@ -35,20 +35,27 @@ import Footer from "@/components/Footer";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_QUIZ_QUESTIONS, QuizQuestion, savePersonalQuizAttempt } from "@/lib/data";
+import { QuizQuestion, LearningModule, savePersonalQuizAttempt } from "@/lib/data";
 import { triggerConfetti, playQuizSound } from "@/lib/confetti";
+
+import { fetchLearningModules } from '@/lib/modules';
+import { generateModuleQuestions } from '@/lib/module-quiz';
+import { moduleQuizText } from '@/lib/module-quiz-source';
 
 type QuizMode = "practice" | "timed";
 
-const CATEGORIES = [
+const BASE_CATEGORIES = [
   { id: "all", name: "All Module Questions", icon: Sparkles, color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  { id: "Fisheries & Marine", name: "Fisheries & Marine", icon: Fish, color: "bg-sky-100 text-sky-800 border-sky-200" },
 ];
 
 const Quiz = () => {
   const autoStarted = useRef(false);
   const tx = useText();
-  const [searchParams] = useSearchParams();
+  const displayQuestion = (question: QuizQuestion) => {
+    const prompt = 'Complete this statement from the selected module:';
+    return question.question.startsWith(prompt) ? tx(prompt)+question.question.slice(prompt.length) : tx(question.question);
+  };
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -60,7 +67,7 @@ const Quiz = () => {
 
   // Active Quiz State
   const [isQuizActive, setIsQuizActive] = useState<boolean>(false);
-  const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>(DEFAULT_QUIZ_QUESTIONS);
+  const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
   const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -82,6 +89,18 @@ const Quiz = () => {
   const [showExitDialog, setShowExitDialog] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
+  const [modules, setModules] = useState<LearningModule[]>([]);
+  const [questionError, setQuestionError] = useState('');
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const moduleId = searchParams.get('module') || '';
+  const selectedModule = modules.find(module => module.id === moduleId);
+  const CATEGORIES = [...BASE_CATEGORIES, ...(selectedModule ? [{ id: selectedModule.category || 'Module Content', name: selectedModule.category || 'Module Content', icon: BookOpen, color: 'bg-emerald-50' }] : [])];
+  useEffect(() => {
+    let cancelled = false;
+    fetchLearningModules().then(data=>{if(!cancelled) setModules(data);}).catch(()=>{if(!cancelled) setQuestionError('Modules could not be loaded. Please refresh.');}).finally(()=>{if(!cancelled) setQuestionsLoading(false);});
+    return ()=>{cancelled=true;};
+  }, []);
+
   // Initialize current user name & status
   useEffect(() => {
     let mounted = true;
@@ -94,33 +113,17 @@ const Quiz = () => {
     return () => { mounted = false; window.removeEventListener("auth-change", refreshUser); };
   }, []);
 
-  // Load module knowledge recall questions pool
-  const loadQuestions = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("quiz_questions")
-        .select("id, category, difficulty, question, choice_a, choice_b, choice_c, choice_d, correct_answer, explanation, image_url")
-        .order("created_at", { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        // Merge Supabase questions with our authoritative default module questions
-        const existingIds = new Set(DEFAULT_QUIZ_QUESTIONS.map((q) => q.id));
-        const merged = [
-          ...DEFAULT_QUIZ_QUESTIONS,
-          ...data.filter((q) => !existingIds.has(q.id) && q.question && q.question.length > 10)
-        ];
-        setAllQuestions(merged);
-      } else {
-        setAllQuestions(DEFAULT_QUIZ_QUESTIONS);
-      }
-    } catch {
-      setAllQuestions(DEFAULT_QUIZ_QUESTIONS);
-    }
-  }, []);
-
   useEffect(() => {
-    loadQuestions();
-  }, [loadQuestions]);
+    let cancelled = false;
+    setAllQuestions([]); setIsQuizActive(false); autoStarted.current=false; setSelectedCategory('all');
+    if (!selectedModule) { setQuestionsLoading(false); return; }
+    setQuestionsLoading(true); setQuestionError('');
+    moduleQuizText(selectedModule).then(text=>{
+      const questions=generateModuleQuestions(selectedModule.id,text,selectedModule.category);
+      if (!cancelled) { setAllQuestions(questions); if(!questions.length) setQuestionError('This module does not contain enough readable text for a quiz. No unrelated questions will be used.'); }
+    }).catch(()=>{if(!cancelled) setQuestionError('The module material could not be read. Please check its PDF and try again.');}).finally(()=>{if(!cancelled) setQuestionsLoading(false);});
+    return ()=>{cancelled=true;};
+  }, [selectedModule]);
 
   const handleTimeExpired = () => {
     if (soundEnabled) playQuizSound('incorrect');
@@ -182,9 +185,8 @@ const Quiz = () => {
       filtered = filtered.filter(q => q.difficulty.toLowerCase() === selectedDifficulty.toLowerCase());
     }
 
-    // If filter is too strict and returns empty, use all questions
-    if (filtered.length === 0) {
-      filtered = [...allQuestions];
+    if (filtered.length === 0 || questionsLoading) {
+      setLoading(false); toast({title:'No questions match this module and difficulty. Choose another difficulty or module.',variant:'destructive'}); return;
     }
 
     // Randomize selection of questions from the module
@@ -305,7 +307,7 @@ const Quiz = () => {
   // Start quiz triggered by query param
   useEffect(() => {
     if (searchParams.get('start') !== 'true') autoStarted.current = false;
-    if (searchParams.get('start') === 'true' && !isQuizActive && !autoStarted.current) {
+    if (searchParams.get('start') === 'true' && !questionsLoading && allQuestions.length>0 && !isQuizActive && !autoStarted.current) {
       autoStarted.current = true;
       handleStartQuiz();
     }
@@ -433,8 +435,8 @@ const Quiz = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-10">
                   <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-center">
                     <BookOpen className="h-5 w-5 text-emerald-600 mx-auto mb-1.5" />
-                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">{tx(allQuestions.length)}{tx("+")}</div>
-                    <div className="text-xs text-muted-foreground font-medium">{tx("Curated Questions")}</div>
+                    <div className="text-xl md:text-2xl font-bold font-heading text-kaani-dark">{tx(allQuestions.length)}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{tx("Module Questions")}</div>
                   </div>
                   <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-100 text-center">
                     <Lightbulb className="h-5 w-5 text-sky-600 mx-auto mb-1.5" />
@@ -458,6 +460,7 @@ const Quiz = () => {
                   <h3 className="text-sm font-bold uppercase tracking-wider text-kaani-dark mb-4 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-kaani-primary" />{tx("Customize Your Knowledge Recall Session")}</h3>
 
+                  <div className="space-y-2 mb-5"><label htmlFor="quiz-module" className="text-xs font-semibold">{tx('Select Learning Module')}</label><select id="quiz-module" value={moduleId} onChange={event=>setSearchParams({module:event.target.value})} className="w-full rounded-xl border border-emerald-200 bg-white p-3"><option value="">{tx('Select a module to prepare its quiz')}</option>{modules.map(module=><option value={module.id} key={module.id}>{tx(module.title)}</option>)}</select>{questionsLoading && <p role="status">{tx('Preparing questions from this module...')}</p>}{questionError && <p role="alert" className="text-red-800">{tx(questionError)}</p>}{moduleId && !selectedModule && !questionsLoading && <p role="alert">{tx('The selected module is not available.')}</p>}</div>
                   {/* Category Filter */}
                   <div className="space-y-2 mb-5">
                     <label className="text-xs font-semibold text-muted-foreground">{tx("Select Category")}</label>
@@ -539,7 +542,7 @@ const Quiz = () => {
                   <Button
                     size="lg"
                     onClick={handleStartQuiz}
-                    disabled={loading}
+                    disabled={loading || questionsLoading || !allQuestions.length}
                     className="bg-kaani-primary hover:bg-kaani-dark text-white font-bold text-base px-8 py-6 rounded-2xl shadow-elevated transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
                   >
                     <Sparkles className="h-5 w-5 text-emerald-200 animate-spin-slow" />
@@ -760,7 +763,7 @@ const Quiz = () => {
                             <Badge className="bg-emerald-600 text-white text-[10px]">{tx("Saved to Profile")}</Badge>
                           </div>
                           <p className="text-xs text-emerald-800">
-                            {tx(playerName.trim() || currentUser?.name)}{tx(" • Score: ")}{tx(Math.round(score))}{tx("% • Reviewed ")}{tx(activeQuestions.length)}{tx(" questions from Unit 1: Fish Physiology")}</p>
+                            {tx(playerName.trim() || currentUser?.name)}{tx(" • Score: ")}{tx(Math.round(score))}{tx("% • Reviewed ")}{tx(activeQuestions.length)}{tx(' questions from ')}{tx(selectedModule?.title || '')}</p>
                         </div>
                       </div>
                       <Button
@@ -796,7 +799,7 @@ const Quiz = () => {
                                    {tx(wasCorrect ? "Correct" : "Incorrect")}
                                 </Badge>
                               </div>
-                              <p className="text-sm font-semibold text-slate-900">{tx(q.question)}</p>
+                              <p className="text-sm font-semibold text-slate-900">{displayQuestion(q)}</p>
                               
                               <div className="text-xs space-y-1 pt-1">
                                 <p className={wasCorrect ? "text-emerald-700 font-medium" : "text-rose-700 font-medium"}>{tx("Your Answer: ")}{tx(userAns ? `(${userAns}) ${q[`choice_${userAns.toLowerCase()}` as keyof QuizQuestion] || "Timed out"}` : "Unanswered")}
@@ -855,7 +858,7 @@ const Quiz = () => {
                     {/* Question Prompt */}
                     <div>
                       <h2 className="text-xl md:text-2xl font-bold font-heading text-slate-900 leading-snug">
-                        {tx(currentQuestion.question)}
+                        {displayQuestion(currentQuestion)}
                       </h2>
                     </div>
 

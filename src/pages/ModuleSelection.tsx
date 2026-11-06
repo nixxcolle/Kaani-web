@@ -370,7 +370,7 @@ const ModuleSelection = () => {
                     className="bg-kaani-primary hover:bg-kaani-dark text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm"
                     asChild
                   >
-                    <Link to="/quiz?start=true">
+                    <Link to={`/quiz?start=true&module=${encodeURIComponent(activeModule.id)}`}>
                       <Sparkles className="h-3.5 w-3.5 text-amber-300" />{tx("Take Quiz on this Topic")}</Link>
                   </Button>
                 </div>

@@ -97,7 +97,7 @@ const Market = () => {
   // Catalog State
   const [products, setProducts] = useState<Product[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(null);
-  const [myProducts, setMyProducts] = useState(false);
+  const [myProducts, setMyProducts] = useState(searchParams.get('mine') === 'true');
   const [catalogError, setCatalogError] = useState('');
   const [catalogLoading, setCatalogLoading] = useState(true);
   const { toast } = useToast();
@@ -113,12 +113,12 @@ const Market = () => {
   const reloadProducts = useCallback(async () => {
     const request = ++catalogRequest.current;
     try {
-      const data = await fetchProducts();
+      const data = await fetchProducts(ownerId || undefined);
       if (request === catalogRequest.current) { setProducts(data); setDetailProduct(previous => previous ? data.find(product => product.id === previous.id) || null : null); setContactProduct(previous => previous ? data.find(product => product.id === previous.id) || null : null); setCatalogError(''); }
     } catch (error) {
       if (request === catalogRequest.current) setCatalogError(error instanceof Error ? error.message : 'Products could not be loaded.');
     } finally { if (request === catalogRequest.current) setCatalogLoading(false); }
-  }, []);
+  }, [ownerId]);
   useEffect(() => {
     let active = true;
     const refreshUser = async () => { const { data } = await supabase.auth.getUser(); if (active) setOwnerId(data.user?.id || null); };
@@ -273,6 +273,7 @@ const Market = () => {
   const filteredProducts = useMemo(() => {
     return products.filter((prod) => {
       if (myProducts && prod.ownerId !== ownerId) return false;
+      if (!myProducts && prod.reviewStatus && prod.reviewStatus !== 'Approved') return false;
       // Hide listings removed/hidden by admin
       if (prod.is_hidden) {
         return false;
@@ -388,8 +389,8 @@ const Market = () => {
       setProducts(previous => [result.product, ...previous.filter(product => product.id !== result.product.id)]);
       setDetailProduct(previous => previous?.id === result.product.id ? result.product : previous);
       setContactProduct(previous => previous?.id === result.product.id ? result.product : previous);
-      setSellSuccess(true); setPhoto(null); setCurrentPage(1);
-      toast({ title: 'Product saved', description: result.warning || 'Your product is now saved in the marketplace database.' });
+      setNewProduct(result.product); setSellSuccess(true); setPhoto(null); setCurrentPage(1);
+      toast({ title: 'Product saved', description: result.warning || (result.product.reviewStatus === 'Pending' ? 'Your product has been submitted and is currently under review by the admin for approval.' : 'Product updated successfully.') });
       void reloadProducts();
     } catch (error) { setRulesError(error instanceof Error ? error.message : 'Product could not be saved.'); }
     finally { mutationPending.current = false; setSaving(false); }
@@ -850,6 +851,7 @@ const Market = () => {
                           </div>
 
                           {/* Title */}
+                          {prod.ownerId === ownerId && prod.reviewStatus && <span className="inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">{tx('Review Status')}: {tx(prod.reviewStatus)}</span>}
                           <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors line-clamp-1">
                             <button type="button" className="text-left" onClick={(event) => { event.stopPropagation(); setDetailProduct(prod); }}>{tx(prod.name)}</button>
                           </h3>
@@ -1279,7 +1281,7 @@ const Market = () => {
                 <Check className="h-8 w-8" />
               </div>
               <h4 className="text-base font-bold text-slate-900">{tx("Product saved")}</h4>
-              <p className="text-xs text-slate-600 max-w-xs mx-auto">{tx("Your product is now saved in the marketplace database.")}</p>
+              <p className="text-xs text-slate-600 max-w-xs mx-auto">{tx(editingProduct && newProduct.reviewStatus === 'Approved' ? 'Product updated successfully.' : 'Your product has been submitted and is currently under review by the admin for approval.')}</p>
             </div>
           ) : (
             <form onSubmit={handleSellSubmit} className="space-y-3.5 pt-3"><fieldset disabled={saving} className="space-y-3.5">

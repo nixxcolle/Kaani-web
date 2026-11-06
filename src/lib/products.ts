@@ -2,9 +2,9 @@ import { supabase, moduleCatalog as catalog } from './supabase';
 import { MARKET_CATEGORIES, type Product } from '../data/marketProducts';
 
 export const PRODUCT_BUCKET = 'product-photos';
-const columns = 'id,owner_id,name,category,type,price,unit,stock,status,seller_name,seller_phone,location,description,photo_path,photo_url,created_at,updated_at';
-type Row = { id: string; owner_id: string; name: string; category: Product['category']; type: Product['type']; price: number; unit: string; stock: number; status: Product['status']; seller_name: string; seller_phone: string; location: string; description: string; photo_path: string; photo_url: string; created_at: string; updated_at: string };
-const product = (row: Row): Product => ({ id: row.id, ownerId: row.owner_id, name: row.name, category: row.category, type: row.type, price: Number(row.price), unit: row.unit, availableStock: Number(row.stock), stockUnit: row.unit, status: row.status, seller: row.seller_name, sellerPhone: row.seller_phone, location: row.location, description: row.description, image: row.photo_url, photoPath: row.photo_path, createdAt: row.created_at, updatedAt: row.updated_at });
+const columns = 'id,owner_id,name,category,type,price,unit,stock,status,seller_name,seller_phone,location,description,photo_path,photo_url,created_at,updated_at,review_status';
+type Row = { review_status?: Product['reviewStatus']; id: string; owner_id: string; name: string; category: Product['category']; type: Product['type']; price: number; unit: string; stock: number; status: Product['status']; seller_name: string; seller_phone: string; location: string; description: string; photo_path: string; photo_url: string; created_at: string; updated_at: string };
+const product = (row: Row): Product => ({ id: row.id, ownerId: row.owner_id, reviewStatus: row.review_status, name: row.name, category: row.category, type: row.type, price: Number(row.price), unit: row.unit, availableStock: Number(row.stock), stockUnit: row.unit, status: row.status, seller: row.seller_name, sellerPhone: row.seller_phone, location: row.location, description: row.description, image: row.photo_url, photoPath: row.photo_path, createdAt: row.created_at, updatedAt: row.updated_at });
 
 export function validatePhoto(file: File) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size < 1 || file.size > 5 * 1024 * 1024) throw new Error('Choose a JPG, PNG, or WebP photo up to 5 MB.');
@@ -22,7 +22,7 @@ export function validateProduct(input: Partial<Product>) {
   if ((input.description || '').length > 3000) throw new Error('Keep the description within 3000 characters.');
 }
 
-export async function fetchProducts(): Promise<Product[]> {
+export async function fetchProducts(ownerId?: string): Promise<Product[]> {
   const rows: Row[] = [];
   let total = 0;
   do {
@@ -31,6 +31,15 @@ export async function fetchProducts(): Promise<Product[]> {
     if (!data || count === null || (!data.length && rows.length < count)) throw new Error('The product response was incomplete. Please refresh.');
     rows.push(...data); total = count;
   } while (rows.length < total);
+  if (ownerId) {
+    let offset = 0, ownTotal = 0;
+    do {
+      const { data, error, count } = await supabase.from('marketplace_products').select(columns, { count: 'exact' }).eq('owner_id',ownerId).order('created_at', { ascending: false }).order('id').range(offset,offset+99);
+      if (error || !data || count === null || (!data.length && offset<count)) throw new Error('Your products could not be loaded. Check the product review database setup.');
+      for (const row of data) { const index = rows.findIndex(p=>p.id===row.id); if (index>=0) rows[index]=row; else rows.push(row); }
+      offset+=data.length;ownTotal=count;
+    } while(offset<ownTotal);
+  }
   return rows.map(product);
 }
 

@@ -453,3 +453,54 @@ test('receipt retries reuse the same immutable file path and a replaced screensh
   await submitPayment('id','2026-10-01',5,'1234567890123','2026-11-01',second);
   assert.equal(paths[0],paths[1]); assert.notEqual(paths[1],paths[2]); assert.match(paths[0],/^seller\/id-[a-f0-9]{64}\.png$/); assert.equal(requests[0].receipt,paths[0]);
 });
+
+
+test('module recall questions and every answer option come only from the selected module source', () => {
+  const { generateModuleQuestions }=load('src/lib/module-quiz.ts');
+  const fish='The gill arches separating the gill slits are reinforced with cartilage. Sharks and their relatives are abundant in oceans as predators and scavengers. Their endoskeleton is cartilaginous and the anterior gill arches are modified into jaws. The mouth is at the center of the round buccal funnel and is armed with horny teeth and a rasping tongue.';
+  const crops='Composting is a biological process that transforms organic materials into nutrient-rich humus. Mulching helps conserve soil moisture and suppresses unwanted weeds around growing vegetables. Irrigation provides a controlled supply of water to roots during prolonged dry weather. Rotation includes growing different crops in succession to improve soil fertility and reduce pests.';
+  const a=generateModuleQuestions('fish',fish), b=generateModuleQuestions('crops',crops);
+  assert.ok(a.length>=2);assert.ok(b.length>=2);
+  for(const [questions,text,id] of [[a,fish,'fish'],[b,crops,'crops']]) for(const q of questions) {
+    assert.ok(q.id.startsWith(id+'-'));assert.ok(text.includes(q.explanation));assert.equal(q.correct_answer,'A');assert.ok(q.question.includes('_____'));
+    assert.equal(new Set([q.choice_a,q.choice_b,q.choice_c,q.choice_d].map(v=>v.toLowerCase())).size,4);
+    for(const option of [q.choice_a,q.choice_b,q.choice_c,q.choice_d]) assert.ok(text.includes(option));
+  }
+  assert.equal(a.some(q=>q.question.includes('Composting')),false);assert.equal(b.some(q=>q.question.includes('gill')),false);
+  assert.deepEqual(generateModuleQuestions('trial','dont click this is for trial only'),[]);
+});
+
+test('product billing uses exact 30-day periods, including boundaries and February', () => {
+  const { productBillingPeriod, billingStatements, closedBillingStatement }=load('src/lib/seller-dashboard.ts',{'./supabase':{},'./products':{}});
+  const posted='2026-01-31T08:15:00Z';const first=productBillingPeriod(posted,new Date('2026-03-02T08:14:59Z'));const second=productBillingPeriod(posted,new Date('2026-03-02T08:15:00Z'));
+  assert.equal(first.index,0);assert.equal(first.end,'2026-03-02T08:15:00.000Z');assert.equal(second.index,1);assert.equal(second.start,first.end);assert.equal(new Date(second.end)-new Date(second.start),2592000000);
+  const order={id:'order',seller_id:'seller',product_name:'Fish',status:'Completed',completed_at:'2026-02-10T00:00:00Z',total:100,commission:5,billing_key:'product:0',billing_start:posted,billing_end:first.end};
+  const rows=billingStatements([order,{...order,status:'Cancelled',commission:999}],[{billing_key:'product:0',month:'2026-01-01',amount:2,status:'Paid'},{billing_key:'product:0',month:'2026-01-01',amount:3,status:'Pending Verification'}],'seller');
+  assert.equal(rows.length,1);assert.equal(rows[0].commission,5);assert.equal(rows[0].balance,3);assert.equal(rows[0].pending,3);
+  assert.equal(closedBillingStatement(rows[0],new Date(first.end)),true);assert.equal(closedBillingStatement(rows[0],new Date('2026-02-28T00:00:00Z')),false);
+});
+
+
+test('PDF page cleaning removes repeated headers and page numbers without losing lesson statements',()=>{
+  const {cleanModulePages}=load('src/lib/module-quiz.ts');
+  const one='1 Fish Study\nAuthor Name\n1\nFish gills are used for respiration and exchange dissolved oxygen.\nThe water passes over the gill filaments to release carbon dioxide.\nunique last line';
+  const two='1 Fish Study\nAuthor Name\n2\nCartilage supports the gill arches and provides structural strength.\nThe lateral line is used to detect vibrations in surrounding water.\nanother last line';
+  const text=cleanModulePages([one,two]);assert.ok(!text.includes('Author Name'));assert.ok(!text.includes('Fish Study'));assert.ok(text.includes('Fish gills'));assert.ok(text.includes('Cartilage'));assert.ok(text.includes('unique last line'));
+});
+
+
+test('dashboard distinguishes an expired session from a connection failure before reading private records',async()=>{
+  let calls=0;
+  const missing=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{supabase:{auth:{getUser:async()=>({data:{user:null},error:{name:'AuthSessionMissingError'}})},rpc:()=>{calls++;}}}});
+  await assert.rejects(missing.fetchDashboard(),/Sign in to open/);
+  const offline=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{supabase:{auth:{getUser:async()=>({data:{user:null},error:{name:'AuthRetryableFetchError'}})},rpc:()=>{calls++;}}}});
+  await assert.rejects(offline.fetchDashboard(),/Check your connection/);assert.equal(calls,0);
+});
+
+
+test('dashboard loads owner posting dates when a cached RPC response lacks billing listings',async()=>{
+ const listing={id:'p',name:'Fish',created_at:'2026-11-01T00:00:00Z',review_status:'Approved',stock:2,unit:'kg',photo_url:'photo'};let owner;
+ const query={select(){return this;},eq(key,value){owner=value;return this;},order(){return this;},range:async()=>({data:[listing],count:1,error:null})};
+ const {fetchDashboard}=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{supabase:{auth:{getUser:async()=>({data:{user:{id:'seller'}}})},rpc:async()=>({data:{products:1,orders:[],payments:[]}}),from:()=>query}}});
+ const data=await fetchDashboard();assert.equal(owner,'seller');assert.deepEqual(data.listings,[listing]);assert.equal(data.products,1);
+});

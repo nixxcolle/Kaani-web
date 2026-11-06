@@ -3,6 +3,7 @@ export type ProductStatus = "Available" | "Out of Stock" | "Unavailable";
 export interface Product {
   id: string;
   ownerId?: string;
+  reviewStatus?: 'Pending' | 'Approved' | 'Rejected';
   photoPath?: string;
   updatedAt?: string;
   name: string;

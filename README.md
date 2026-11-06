@@ -91,6 +91,8 @@ Public module catalog reads use a separate session-free Supabase client and the 
 
 ## Seller dashboard and monthly commission
 
+**Latest update:** `supabase/marketplace-update.sql` installs product review and fixed 30-day product billing while preserving earlier monthly records. See `supabase/MARKETPLACE-UPDATE.md` for setup, approval commands, billing behavior and module-specific quiz extraction. The older month-based setup below describes the original dashboard and its legacy records.
+
 The marketplace links to `/market/dashboard`. Run the contents of `supabase/seller-dashboard.sql` once after `supabase/marketplace.sql`; see `supabase/SELLER-DASHBOARD-SETUP.md` for setup and administrator verification. Signed-in buyers place real orders separately from SMS inquiries. Sellers manage their own orders, completed sales, monthly 5% commission and manually verified GCash submissions. Records synchronize through Realtime, refresh/focus and a 30-second visible-page fallback. Commission is recorded on completion and summarized per product in Asia/Manila months; current-month statements accrue until month end. No fake orders, historic SMS imports, automatic money transfers or automatic verification are included. A payment deadline beyond month end has not been specified.
 
 ## Registration without role selection
