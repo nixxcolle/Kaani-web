@@ -504,3 +504,85 @@ test('dashboard loads owner posting dates when a cached RPC response lacks billi
  const {fetchDashboard}=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{supabase:{auth:{getUser:async()=>({data:{user:{id:'seller'}}})},rpc:async()=>({data:{products:1,orders:[],payments:[]}}),from:()=>query}}});
  const data=await fetchDashboard();assert.equal(owner,'seller');assert.deepEqual(data.listings,[listing]);assert.equal(data.products,1);
 });
+
+
+test('customers keep all purchases visible even when they also sell products',()=>{
+ const {customerOrders}=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{}});
+ const orders=[{id:'purchase',buyer_id:'member',seller_id:'other'},{id:'sale',buyer_id:'other',seller_id:'member'},{id:'cancelled',buyer_id:'member',seller_id:'other',status:'Cancelled'}];
+ assert.deepEqual(customerOrders(orders,'member').map(o=>o.id),['purchase','cancelled']);assert.deepEqual(customerOrders(orders,'outsider'),[]);
+});
+
+test('sales summaries count only completed owned revenue and group calendar monthly earnings in Manila',()=>{
+ const {salesSummary}=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{}});
+ const base={seller_id:'seller',status:'Completed',product_id:'fish',product_name:'Fish',quantity:1,total:100,commission:5,completed_at:'2026-10-31T16:30:00Z'};
+ const summary=salesSummary([base,{...base,total:200,commission:10},{...base,status:'Cancelled',total:999},{...base,status:'Delivered',total:999},{...base,seller_id:'other',total:999}],'seller');
+ assert.equal(summary.orderCount,4);assert.equal(summary.completedCount,2);assert.equal(summary.gross,300);assert.equal(summary.commission,15);assert.equal(summary.net,285);assert.equal(summary.products.length,1);assert.equal(summary.products[0].sales,300);assert.equal(summary.months[0].month,'2026-11-01');
+});
+
+test('quiz choice shuffling preserves correct answers and grading rejects mixed-module or duplicate question data',()=>{
+ const {prepareModuleQuiz,gradeModuleQuiz}=load('src/lib/quiz-session.ts');
+ const q={id:'q',module_id:'fish',question:'Complete the fish statement.',choice_a:'Gills',choice_b:'Fins',choice_c:'Scales',choice_d:'Muscles',correct_answer:'A',explanation:'Fish use gills for respiration.'};
+ for(let i=0;i<20;i++){const [mixed]=prepareModuleQuiz([q], 'fish');assert.equal(mixed['choice_'+mixed.correct_answer.toLowerCase()],'Gills');assert.deepEqual(gradeModuleQuiz([mixed],{q:mixed.correct_answer},'fish'),{correct:1,total:1,percentage:100});assert.equal(gradeModuleQuiz([mixed],{q:'NONE'},'fish').percentage,0);}
+ assert.deepEqual(prepareModuleQuiz([q],'crops'),[]);assert.deepEqual(prepareModuleQuiz([{...q,choice_d:'gills'}],'fish'),[]);
+ assert.throws(()=>gradeModuleQuiz([q],{q:'A'},'crops'),/selected module/);assert.throws(()=>gradeModuleQuiz([q,q],{q:'A'},'fish'),/selected module/);
+ assert.deepEqual(gradeModuleQuiz([],{},'fish'),{correct:0,total:0,percentage:0});
+ const questions=[q,{...q,id:'q2'},{...q,id:'q3'}];assert.deepEqual(gradeModuleQuiz(questions,{q:'A',q2:'A',q3:'NONE'},'fish'),{correct:2,total:3,percentage:67});
+});
+
+test('personal quiz history records the selected module and reports blocked local storage honestly',()=>{
+ const {savePersonalQuizAttempt,getPersonalQuizHistory}=load('src/lib/data.ts');
+ const result=savePersonalQuizAttempt({score:100,total_questions:1,correct_answers:1,date:'2026-11-07',module_id:'fish',module_title:'Fish',question_ids:['fish-q1']});
+ assert.equal(result.savedLocally,true);assert.equal(getPersonalQuizHistory()[0].module_id,'fish');
+ global.localStorage={getItem:()=>null,setItem:()=>{throw Error('blocked');}};assert.equal(savePersonalQuizAttempt({score:0,total_questions:1,correct_answers:0,date:'2026-11-07'}).savedLocally,false);
+});
+
+
+test('dashboard renders purchases and receipt actions separately from seller fulfillment',()=>{
+ const React=require('react'),{renderToStaticMarkup}=require('react-dom/server'),{StaticRouter}=require('react-router-dom/server');
+ const helpers=load('src/lib/seller-dashboard.ts',{'./supabase':{},'./products':{}});
+ const base={quantity:1,unit:'kg',total:100,created_at:'2026-11-07T00:00:00Z',commission:0,completed_at:null};
+ const data={user_id:'member',profile:{name:'Test Member',email:'test@example.invalid'},products:1,listings:[],payments:[],orders:[{...base,id:'purchase',buyer_id:'member',seller_id:'other',product_name:'Rice Purchase',status:'Delivered'},{...base,id:'sale',buyer_id:'other',seller_id:'member',product_name:'Fish Sale',status:'Confirmed'}]};
+ function render(section){let index=0;const mocks={react:{...React,useState:initial=>{const n=index++;return [n===0?data:n===3?section:n===5?false:initial,()=>{}];}},'@/components/Header':{default:()=>null},'@/components/Footer':{default:()=>null},'@/components/icons':new Proxy({},{get:()=>()=>null}),'@/components/ui/button':{Button:({children,asChild,...props})=>React.createElement('button',props,children)},'@/hooks/use-toast':{useToast:()=>({toast(){}})},'@/lib/translate':{useText:()=>value=>value},'@/lib/commission':load('src/lib/commission.ts'),'@/lib/supabase':{},'@/lib/order-notifications':{},'@/lib/seller-dashboard':helpers};
+ const output=ts.transpileModule(fs.readFileSync('src/pages/MarketDashboard.tsx','utf8'),{fileName:'MarketDashboard.tsx',compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;const module={exports:{}};new Function('require','module','exports',output)(name=>mocks[name]||require(name),module,module.exports);
+ return renderToStaticMarkup(React.createElement(StaticRouter,null,React.createElement(module.exports.default)));}
+ const purchases=render('My Orders');assert.match(purchases,/Rice Purchase/);assert.doesNotMatch(purchases,/Fish Sale/);assert.match(purchases,/>Order Received<\/button>/);assert.match(purchases,/>Order Not Received<\/button>/);
+ const sales=render('Seller Orders');assert.match(sales,/Fish Sale/);assert.doesNotMatch(sales,/Rice Purchase/);assert.match(sales,/Confirm Handover \/ Delivery/);assert.doesNotMatch(sales,/>Order Received<\/button>/);
+});
+
+
+test('seller unread queries are owner-filtered and reading notifications uses the checked RPC',async()=>{
+ let owner,seen,selection,read;const query={select(...args){selection=args;return this;},eq(key,value){owner=[key,value];return this;},is:async(key,value)=>{seen=[key,value];return {count:3,error:null};}};
+ const {unreadSellerOrders,readSellerOrders}=load('src/lib/order-notifications.ts',{'./supabase':{supabase:{from:()=>query,rpc:async(name,args)=>{read=[name,args];return {error:null};}}}});
+ assert.equal(await unreadSellerOrders('seller'),3);assert.deepEqual(owner,['seller_id','seller']);assert.deepEqual(seen,['seller_seen_at',null]);assert.equal(selection[1].head,true);
+ await readSellerOrders([]);assert.equal(read,undefined);await readSellerOrders(['order']);assert.deepEqual(read,['read_marketplace_orders',{order_ids:['order']}]);
+});
+
+test('realtime seller inserts notify once, ignore other sellers and stop after cleanup',async()=>{
+ const effects=[],handlers=[],messages=[],counts=[];let state=0,reads=0,removed=false;
+ global.window={...global.window,addEventListener(){},removeEventListener(){},setInterval:()=>1};
+ const channel={on(_event,filter,callback){handlers.push({filter,callback});return this;},subscribe(callback){callback('SUBSCRIBED');return this;}};
+ const {useOrderNotifications}=load('src/hooks/use-order-notifications.ts',{react:{useState:()=>{const n=state++;return [n===0?'seller':0,value=>counts.push(value)];},useEffect:fn=>effects.push(fn)},'@/hooks/use-toast':{useToast:()=>({toast:message=>messages.push(message)})},'@/lib/order-notifications':{unreadSellerOrders:async id=>{assert.equal(id,'seller');reads++;return 2;}},'@/lib/supabase':{supabase:{auth:{getUser:async()=>({data:{user:{id:'seller'}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},channel:()=>channel,removeChannel:async()=>{removed=true;}}}});
+ useOrderNotifications();const cleanups=effects.map(effect=>effect());await new Promise(setImmediate);
+ const insert=handlers.find(h=>h.filter.event==='INSERT');assert.equal(insert.filter.filter,'seller_id=eq.seller');
+ insert.callback({new:{id:'order',seller_id:'seller'}});insert.callback({new:{id:'order',seller_id:'seller'}});insert.callback({new:{id:'other',seller_id:'outsider'}});await new Promise(setImmediate);
+ assert.equal(messages.length,1);assert.equal(messages[0].title,'New customer order');assert.ok(counts.includes(2));
+ cleanups.forEach(cleanup=>cleanup());const before=reads;insert.callback({new:{id:'late',seller_id:'seller'}});await new Promise(setImmediate);assert.equal(reads,before);assert.equal(messages.length,1);assert.equal(removed,true);
+});
+
+test('seller payment updates call the dedicated payment RPC and preserve order fulfillment state',async()=>{
+ let request;const {updateOrderPayment}=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{supabase:{rpc:async(name,args)=>{request=[name,args];return {error:null};}}}});
+ await updateOrderPayment('order','Paid');assert.deepEqual(request,['set_marketplace_order_payment',{order_id:'order',next_payment_status:'Paid'}]);
+});
+
+
+test('uncertain purchase responses do not announce success and tell the buyer to check saved orders first',async()=>{
+ let events=0;global.window={dispatchEvent(){events++;}};
+ const {placeOrder}=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{supabase:{rpc:async()=>({error:{code:'',message:'Failed to fetch'}})}}});
+ await assert.rejects(placeOrder('same-attempt','product',1,'Buyer','09123456789',100),/may already have been saved/);assert.equal(events,0);
+});
+
+
+test('a stock or price rejection is explained without claiming an authentication failure or leaking database errors',async()=>{
+ const {placeOrder}=load('src/lib/seller-dashboard.ts',{'./products':{},'./supabase':{supabase:{rpc:async()=>({error:{code:'P0001',message:'Product unavailable, price changed or insufficient stock.'}})}}});
+ await assert.rejects(placeOrder('id','product',22,'Buyer','09123456789',50),error=>error.message==='The product price or available stock changed. Refresh the listing and check your quantity.');
+});

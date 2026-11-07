@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import LanguageSelector from "./LanguageSelector";
 import { useLanguage } from "@/lib/language-context";
 import { logout, getCurrentUser } from "@/lib/auth";
+import { useOrderNotifications } from '@/hooks/use-order-notifications';
 
 interface UserProfile {
   id?: string;
@@ -30,6 +31,7 @@ interface UserProfile {
 
 const Header = () => {
   const tx = useText();
+  const unreadOrders = useOrderNotifications();
   const { t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -165,9 +167,10 @@ const Header = () => {
           <div className="flex items-center space-x-2 pl-2 border-l border-emerald-100 ml-1">
             {user ? (
               <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200/80 rounded-full pl-2 pr-2.5 py-1">
-                <div className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                <Link to={unreadOrders ? '/market/dashboard?view=seller-orders' : '/market/dashboard'} aria-label={tx('My Dashboard')} className="relative w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                   {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="h-3.5 w-3.5" />}
-                </div>
+                  {unreadOrders>0 && <span className="absolute -right-1 -top-1 rounded-full bg-rose-600 text-white px-1 text-[9px] leading-4" aria-label={tx('Unread seller orders')}>{unreadOrders>99?'99+':unreadOrders}</span>}
+                </Link>
                 <span className="text-xs font-bold text-emerald-950 max-w-[100px] truncate">
                   {tx(user.name || "Learner")}
                 </span>
@@ -206,10 +209,11 @@ const Header = () => {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-expanded={isMenuOpen}
               aria-controls="mobile-navigation"
-            className="p-2 text-emerald-900 rounded-xl hover:bg-emerald-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            className="relative p-2 text-emerald-900 rounded-xl hover:bg-emerald-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600"
             aria-label={tx("Toggle navigation menu")}
           >
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {unreadOrders>0 && <span className="absolute right-0 top-0 rounded-full bg-rose-600 px-1 text-[9px] leading-4 text-white">{unreadOrders>99?'99+':unreadOrders}</span>}
           </button>
         </div>
       </div>
@@ -236,6 +240,7 @@ const Header = () => {
 
           {/* Navigation Links */}
           <nav className="space-y-1.5" id="mobile-navigation" aria-label={tx("Mobile Navigation")}>
+            {unreadOrders>0 && <Link to="/market/dashboard?view=seller-orders" onClick={()=>setIsMenuOpen(false)} className="flex items-center gap-3 rounded-xl bg-rose-50 px-4 py-3 font-semibold text-rose-900"><ShoppingBag className="h-5 w-5"/>{tx('Unread seller orders')}: {unreadOrders}</Link>}
             {navItems.map((item) => {
               const active = isActive(item.href);
               const Icon = item.icon;

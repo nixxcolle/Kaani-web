@@ -1,8 +1,8 @@
 import { supabase } from './supabase';
 import { validatePhoto } from './products';
 
-export type OrderStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
-export type Order = { billing_key?: string; billing_start?: string; billing_end?: string; id: string; seller_id: string; buyer_id: string; buyer_name: string; buyer_phone: string; product_id?: string; product_name: string; quantity: number; unit: string; total: number; status: OrderStatus; created_at: string; completed_at: string | null; commission_rate: number | null; commission: number | null; due_date: string | null };
+export type OrderStatus = 'Pending' | 'Confirmed' | 'Delivered' | 'Completed' | 'Cancelled';
+export type Order = { unit_price?: number; seller_seen_at?: string | null; payment_status?: 'Not Recorded' | 'Unpaid' | 'Paid'; paid_at?: string | null; payment_updated_at?: string | null; confirmed_at?: string; handed_over_at?: string; received_at?: string; not_received_at?: string; receipt_status?: 'Received' | 'Not Received'; billing_key?: string; billing_start?: string; billing_end?: string; id: string; seller_id: string; buyer_id: string; buyer_name: string; buyer_phone: string; product_id?: string; product_name: string; quantity: number; unit: string; total: number; status: OrderStatus; created_at: string; completed_at: string | null; commission_rate: number | null; commission: number | null; due_date: string | null };
 export type Payment = { billing_key?: string; period_start?: string; period_end?: string; id: string; month: string; amount: number; reference: string; payment_date: string; status: 'Pending Verification' | 'Paid' | 'Rejected'; receipt_path: string | null };
 export type Listing = { id: string; name: string; created_at: string; review_status: string; stock: number; unit: string; photo_url: string };
 export type Dashboard = { listings?: Listing[]; user_id: string; profile: { name?: string; email: string }; products: number; orders: Order[]; payments: Payment[] };
@@ -49,11 +49,34 @@ export async function fetchDashboard(): Promise<Dashboard> {
 export async function placeOrder(id: string, productId: string, quantity: number, name: string, phone: string, expectedPrice: number) {
   if (!Number.isFinite(quantity) || quantity <= 0 || Math.abs(quantity * 1000 - Math.round(quantity * 1000)) > 0.00001 || !name.trim() || !/^\+?[\d ()-]{7,25}$/.test(phone)) throw new Error('Check the quantity, name and phone number.');
   const { error } = await supabase.rpc('place_marketplace_order', { order_id: id, product: productId, qty: quantity, buyer: name.trim(), phone: phone.trim(), expected_price: expectedPrice });
-  if (error) throw new Error('Order could not be placed. Sign in, check stock and your details, then retry.');
+  if (error?.code==='P0001' && error.message==='Product unavailable, price changed or insufficient stock.') throw new Error('The product price or available stock changed. Refresh the listing and check your quantity.');
+  if (error) throw new Error(['P0001','42501','23514','23503','22P02','PGRST202'].includes(error.code) ? 'Order could not be placed. Sign in, check stock and your details, then retry.' : 'Order confirmation could not be retrieved. Check My Orders before retrying; your order may already have been saved.');
+  window.dispatchEvent(new Event('marketplace-orders-changed'));
+}
+export async function updateOrderPayment(id: string, paymentStatus: 'Unpaid' | 'Paid') {
+  const {error}=await supabase.rpc('set_marketplace_order_payment',{order_id:id,next_payment_status:paymentStatus});
+  if(error) throw new Error('Payment status could not be updated. Refresh and check your seller permissions.');
+  window.dispatchEvent(new Event('marketplace-orders-changed'));
 }
 export async function updateOrder(id: string, status: OrderStatus) {
   const { error } = await supabase.rpc('set_marketplace_order_status', { order_id: id, next_status: status });
   if (error) throw new Error('Order could not be updated. Refresh and check the commission configuration or order status.');
+}
+export async function confirmReceipt(id: string, received: boolean) {
+  const { error } = await supabase.rpc('confirm_marketplace_order_receipt', { order_id: id, received });
+  if (error) throw new Error('Receipt confirmation failed. Refresh and check the order status.');
+}
+
+export function customerOrders(orders: Order[], userId: string) {
+  return orders.filter(order=>order.buyer_id===userId);
+}
+
+export function salesSummary(orders: Order[], sellerId: string) {
+  const own=orders.filter(order=>order.seller_id===sellerId);
+  const completed=own.filter(order=>order.status==='Completed');
+  const gross=completed.reduce((sum,order)=>sum+Math.round(Number(order.total)*100),0);
+  const commission=completed.reduce((sum,order)=>sum+Math.round(Number(order.commission)*100),0);
+  return { orderCount: own.length, completedCount: completed.length, gross: gross/100, commission: commission/100, net: (gross-commission)/100, products: productCommissionSummary(completed), months: monthlyCommissions(completed,[],sellerId) };
 }
 export async function submitPayment(id: string, month: string, amount: number, reference: string, date: string, photo: File | null) {
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.00001 || !/^\d{10,20}$/.test(reference) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !(/^\d{4}-\d{2}-01$/.test(month) || /^[a-f0-9-]{36}:\d+$/.test(month))) throw new Error('Check the payment amount, date and GCash reference.');

@@ -30,7 +30,7 @@ export function generateModuleQuestions(moduleId: string, text: string, category
     if (unique.length<3) continue;
     usedAnswers.add(answer.toLowerCase());
     const difficulty = sentence.length>240 ? 'Hard' : sentence.length>140 ? 'Medium' : 'Easy';
-    questions.push({ id: `${moduleId}-recall-${questions.length}`, category, difficulty,
+    questions.push({ id: `${moduleId}-recall-${questions.length}`, module_id: moduleId, category, difficulty,
       question: `Complete this statement from the selected module: “${sentence.replace(new RegExp(`\\b${answer}\\b`,'g'),'_____')}”`,
       choice_a: answer, choice_b: unique[0], choice_c: unique[Math.floor(unique.length/2)], choice_d: unique[unique.length-1], correct_answer: 'A', explanation: sentence, image_url: null });
     if (questions.length===60) break;

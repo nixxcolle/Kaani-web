@@ -342,4 +342,148 @@ $$;
 $review$;
 end if;
 end $install$;
+
+-- Run after marketplace-update.sql. Preserves previously completed orders and payments.
+alter table public.marketplace_orders drop constraint if exists marketplace_orders_status_check;
+alter table public.marketplace_orders add constraint marketplace_orders_status_check check(status in ('Pending','Confirmed','Delivered','Completed','Cancelled'));
+alter table public.marketplace_orders add column if not exists confirmed_at timestamptz;
+alter table public.marketplace_orders add column if not exists handed_over_at timestamptz;
+alter table public.marketplace_orders add column if not exists received_at timestamptz;
+alter table public.marketplace_orders add column if not exists not_received_at timestamptz;
+alter table public.marketplace_orders add column if not exists receipt_status text check(receipt_status in ('Received','Not Received'));
+
+create or replace function public.set_marketplace_order_status(order_id uuid,next_status text) returns void
+language plpgsql security definer set search_path='' as $$
+declare o public.marketplace_orders;
+begin
+  select * into o from public.marketplace_orders where id=order_id for update;
+  if not found or o.seller_id is distinct from auth.uid() then raise exception 'Only the seller can update fulfillment.'; end if;
+  if next_status is null or next_status not in ('Confirmed','Delivered','Cancelled') then raise exception 'Customer receipt confirmation is required to complete an order.'; end if;
+  if o.status=next_status then return; end if;
+  if not ((o.status='Pending' and next_status in ('Confirmed','Cancelled')) or (o.status='Confirmed' and next_status in ('Delivered','Cancelled'))) then raise exception 'Invalid order status change.'; end if;
+  update public.marketplace_orders set status=next_status,
+    confirmed_at=case when next_status='Confirmed' then now() else confirmed_at end,
+    handed_over_at=case when next_status='Delivered' then now() else handed_over_at end
+  where id=order_id;
+  if next_status='Cancelled' then
+    update public.marketplace_products set stock=stock+o.quantity,status=case when status='Out of Stock' then 'Available' else status end where id=o.product_id;
+  end if;
+end $$;
+
+create or replace function public.confirm_marketplace_order_receipt(order_id uuid,received boolean) returns void
+language plpgsql security definer set search_path='' as $$
+declare o public.marketplace_orders; s public.marketplace_commission_settings;
+begin
+  select * into o from public.marketplace_orders where id=order_id for update;
+  if not found or o.buyer_id is distinct from auth.uid() then raise exception 'Only the buyer can confirm receipt.'; end if;
+  if received is null then raise exception 'Choose received or not received.'; end if;
+  if received and o.status='Completed' and o.receipt_status='Received' then return; end if;
+  if o.status<>'Delivered' then raise exception 'The seller must confirm handover or delivery first.'; end if;
+  if not received then
+    update public.marketplace_orders set receipt_status='Not Received',not_received_at=coalesce(not_received_at,now()) where id=order_id;
+    return;
+  end if;
+  select * into s from public.marketplace_commission_settings where id;
+  if s.rate is null then raise exception 'Commission rate must be configured first.'; end if;
+  update public.marketplace_orders set status='Completed',receipt_status='Received',received_at=now(),completed_at=now(),
+    commission_rate=s.rate,commission=round(total*s.rate,2),due_date=(date_trunc('month',now() at time zone 'Asia/Manila')+interval '1 month - 1 day')::date
+  where id=order_id;
+  -- The existing billing trigger assigns the original product's 30-day period.
+end $$;
+revoke all on function public.set_marketplace_order_status(uuid,text),public.confirm_marketplace_order_receipt(uuid,boolean) from public,anon;
+grant execute on function public.set_marketplace_order_status(uuid,text),public.confirm_marketplace_order_receipt(uuid,boolean) to authenticated;
+do $$ begin
+  assert not has_table_privilege('authenticated','public.marketplace_orders','UPDATE'), 'Order changes must use the checked functions';
+  assert not has_function_privilege('anon','public.confirm_marketplace_order_receipt(uuid,boolean)','EXECUTE'), 'Guests cannot confirm receipts';
+end $$;
+
+create table if not exists public.quiz_scores (
+  id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id),user_name text not null,
+  score integer not null,total_questions integer not null,correct_answers integer not null,created_at timestamptz not null default now()
+);
+alter table public.quiz_scores add column if not exists module_id text;
+alter table public.quiz_scores add column if not exists module_title text;
+alter table public.quiz_scores add column if not exists question_ids text[];
+alter table public.quiz_scores enable row level security;
+revoke all on public.quiz_scores from anon,authenticated;
+grant select,insert on public.quiz_scores to authenticated;
+drop policy if exists personal_quiz_read on public.quiz_scores;
+create policy personal_quiz_read on public.quiz_scores for select to authenticated using(user_id::text=auth.uid()::text);
+drop policy if exists personal_quiz_insert on public.quiz_scores;
+create policy personal_quiz_insert on public.quiz_scores for insert to authenticated with check(user_id::text=auth.uid()::text);
+drop policy if exists personal_quiz_boundary on public.quiz_scores;
+create policy personal_quiz_boundary on public.quiz_scores as restrictive for all to public using(user_id::text=auth.uid()::text) with check(user_id::text=auth.uid()::text);
+do $$ begin
+ if not exists(select 1 from pg_constraint where conname='quiz_scores_consistent_result' and conrelid='public.quiz_scores'::regclass) then
+  alter table public.quiz_scores add constraint quiz_scores_consistent_result check(total_questions::numeric>0 and correct_answers::numeric between 0 and total_questions::numeric and score::numeric=round(correct_answers::numeric*100/total_questions::numeric)) not valid;
+ end if;
+end $$;
+
+
+-- Run after marketplace-update.sql. No payment is automatically charged or verified.
+do $$ begin
+  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='marketplace_orders' and column_name='payment_status') then
+    alter table public.marketplace_orders add column payment_status text not null default 'Not Recorded' check(payment_status in ('Not Recorded','Unpaid','Paid'));
+    alter table public.marketplace_orders alter column payment_status set default 'Unpaid';
+  end if;
+  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='marketplace_orders' and column_name='seller_seen_at') then
+    alter table public.marketplace_orders add column seller_seen_at timestamptz;
+    update public.marketplace_orders set seller_seen_at=now();
+  end if;
+end $$;
+alter table public.marketplace_orders add column if not exists paid_at timestamptz;
+alter table public.marketplace_orders add column if not exists payment_updated_at timestamptz;
+create index if not exists marketplace_orders_unread_seller on public.marketplace_orders(seller_id) where seller_seen_at is null;
+create index if not exists marketplace_orders_buyer on public.marketplace_orders(buyer_id);
+
+create or replace function public.set_marketplace_order_payment(order_id uuid,next_payment_status text) returns void
+language plpgsql security definer set search_path='' as $$
+declare o public.marketplace_orders;
+begin
+  select * into o from public.marketplace_orders where id=order_id for update;
+  if not found or o.seller_id is distinct from auth.uid() then raise exception 'Only the seller can record payment receipt.'; end if;
+  if next_payment_status is null or next_payment_status not in ('Unpaid','Paid') or o.status='Cancelled' then raise exception 'Invalid payment update.'; end if;
+  if o.payment_status=next_payment_status then return; end if;
+  update public.marketplace_orders set payment_status=next_payment_status,payment_updated_at=now(),
+    paid_at=case when next_payment_status='Paid' then now() else null end where id=order_id;
+end $$;
+
+create or replace function public.read_marketplace_orders(order_ids uuid[]) returns void
+language sql security definer set search_path='' as $$
+  update public.marketplace_orders set seller_seen_at=now()
+  where seller_id=auth.uid() and id=any(order_ids) and seller_seen_at is null;
+$$;
+revoke all on function public.set_marketplace_order_payment(uuid,text),public.read_marketplace_orders(uuid[]) from public,anon;
+grant execute on function public.set_marketplace_order_payment(uuid,text),public.read_marketplace_orders(uuid[]) to authenticated;
+
+-- Both the order and stock change commit together; Realtime publishes only committed rows.
+create or replace function public.place_marketplace_order(order_id uuid,product uuid,qty numeric,buyer text,phone text,expected_price numeric) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare p public.marketplace_products; existing public.marketplace_orders;
+begin
+  if auth.uid() is null then raise exception 'Sign in to place an order.'; end if;
+  select * into existing from public.marketplace_orders where id=order_id;
+  if found then
+    if existing.buyer_id=auth.uid() and existing.product_id=product and existing.quantity=qty and existing.buyer_name=trim(buyer) and existing.buyer_phone=trim(phone) and existing.unit_price=expected_price then return existing.id; end if;
+    raise exception 'Order ID already used.';
+  end if;
+  if qty is null or qty<=0 or qty>1000000000 or qty<>round(qty,3) or buyer is null or length(trim(buyer)) not between 1 and 120 or phone is null or phone !~ '^\+?[0-9 ()-]{7,25}$' or length(regexp_replace(phone,'[^0-9]','','g'))<7 then raise exception 'Check the quantity, name and phone number.'; end if;
+  select * into p from public.marketplace_products where id=product for update;
+  if not found or p.owner_id=auth.uid() or p.review_status<>'Approved' or p.status<>'Available' or p.stock<qty or expected_price is distinct from p.price or round(p.price*qty,2)<=0 then raise exception 'Product unavailable, price changed or insufficient stock.'; end if;
+  insert into public.marketplace_orders(id,buyer_id,seller_id,product_id,product_name,unit,buyer_name,buyer_phone,quantity,unit_price,total,payment_status)
+  values(order_id,auth.uid(),p.owner_id,p.id,p.name,p.unit,trim(buyer),trim(phone),qty,p.price,round(p.price*qty,2),'Unpaid');
+  update public.marketplace_products set stock=stock-qty,status=case when stock=qty then 'Out of Stock' else status end where id=p.id;
+  return order_id;
+end $$;
+revoke all on function public.place_marketplace_order(uuid,uuid,numeric,text,text,numeric) from public,anon;
+grant execute on function public.place_marketplace_order(uuid,uuid,numeric,text,text,numeric) to authenticated;
+
+do $$ declare t text; begin
+  if exists(select 1 from pg_publication where pubname='supabase_realtime') then
+    foreach t in array array['marketplace_orders','marketplace_products','marketplace_commission_payments'] loop
+      if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename=t) then execute format('alter publication supabase_realtime add table public.%I',t); end if;
+    end loop;
+  end if;
+end $$;
+
 commit;

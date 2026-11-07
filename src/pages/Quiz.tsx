@@ -40,6 +40,7 @@ import { triggerConfetti, playQuizSound } from "@/lib/confetti";
 
 import { fetchLearningModules } from '@/lib/modules';
 import { generateModuleQuestions } from '@/lib/module-quiz';
+import { prepareModuleQuiz, gradeModuleQuiz } from '@/lib/quiz-session';
 import { moduleQuizText } from '@/lib/module-quiz-source';
 
 type QuizMode = "practice" | "timed";
@@ -50,6 +51,9 @@ const BASE_CATEGORIES = [
 
 const Quiz = () => {
   const autoStarted = useRef(false);
+  const answersRef = useRef<Record<string,string>>({});
+  const finishedRef = useRef(false);
+  const quizModuleRef = useRef('');
   const tx = useText();
   const displayQuestion = (question: QuizQuestion) => {
     const prompt = 'Complete this statement from the selected module:';
@@ -85,6 +89,7 @@ const Quiz = () => {
   const [playerName, setPlayerName] = useState<string>("");
   const [currentUser, setCurrentUser] = useState<{ id?: string; name?: string; email?: string; is_guest?: boolean } | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [progressMessage,setProgressMessage] = useState('');
   const [showReview, setShowReview] = useState<boolean>(false);
   const [showExitDialog, setShowExitDialog] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -126,10 +131,12 @@ const Quiz = () => {
   }, [selectedModule]);
 
   const handleTimeExpired = () => {
+    const currentQ=activeQuestions[currentIndex];
+    if (!currentQ || finishedRef.current || answersRef.current[currentQ.id]) return;
+    answersRef.current={...answersRef.current,[currentQ.id]:'NONE'};
     if (soundEnabled) playQuizSound('incorrect');
     setSelectedAnswer("NONE");
-    const currentQ = activeQuestions[currentIndex];
-    setUserAnswers(prev => ({ ...prev, [currentQ.id]: "NONE" }));
+    setUserAnswers(answersRef.current);
     setShowExplanation(true);
     setStreak(0);
     toast({
@@ -137,40 +144,6 @@ const Quiz = () => {
       description: "Let's review the correct answer and move on.",
       variant: "destructive"
     });
-  };
-
-  // Helper to dynamically shuffle choices (A, B, C, D) while preserving correct answer matching
-  const shuffleQuestionWithChoices = (q: QuizQuestion): QuizQuestion => {
-    const rawChoices = [
-      { text: q.choice_a, originalKey: "A" },
-      { text: q.choice_b, originalKey: "B" },
-      { text: q.choice_c, originalKey: "C" },
-      { text: q.choice_d, originalKey: "D" },
-    ];
-
-    // Fisher-Yates choice shuffle
-    const shuffled = [...rawChoices];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-
-    const letters = ["A", "B", "C", "D"];
-    let newCorrect = "A";
-    shuffled.forEach((item, idx) => {
-      if (item.originalKey === q.correct_answer) {
-        newCorrect = letters[idx];
-      }
-    });
-
-    return {
-      ...q,
-      choice_a: shuffled[0].text,
-      choice_b: shuffled[1].text,
-      choice_c: shuffled[2].text,
-      choice_d: shuffled[3].text,
-      correct_answer: newCorrect,
-    };
   };
 
   const handleStartQuiz = () => {
@@ -189,12 +162,9 @@ const Quiz = () => {
       setLoading(false); toast({title:'No questions match this module and difficulty. Choose another difficulty or module.',variant:'destructive'}); return;
     }
 
-    // Randomize selection of questions from the module
-    const shuffledOrder = [...filtered].sort(() => 0.5 - Math.random());
-    const subset = shuffledOrder.slice(0, Math.min(10, shuffledOrder.length));
-
-    // Shuffle answer choices for each question so each quiz attempt varies
-    const randomizedQuestions = subset.map(shuffleQuestionWithChoices);
+    const randomizedQuestions = prepareModuleQuiz(filtered,moduleId);
+    if(!randomizedQuestions.length) { setLoading(false); toast({title:'Quiz questions do not match the selected module. Please restart.',variant:'destructive'}); return; }
+    answersRef.current={};finishedRef.current=false;quizModuleRef.current=moduleId;setProgressMessage('');
 
     setActiveQuestions(randomizedQuestions);
     setIsQuizActive(true);
@@ -215,16 +185,13 @@ const Quiz = () => {
   };
 
   const handleAnswerSelect = (option: string) => {
-    if (showExplanation) return;
-
-    setSelectedAnswer(option);
     const currentQ = activeQuestions[currentIndex];
+    if (!currentQ || showExplanation || finishedRef.current || !/^[ABCD]$/.test(option) || answersRef.current[currentQ.id]) return;
+    answersRef.current={...answersRef.current,[currentQ.id]:option};
+    setSelectedAnswer(option);
     const isCorrect = option === currentQ.correct_answer;
 
-    setUserAnswers(prev => ({
-      ...prev,
-      [currentQ.id]: option
-    }));
+    setUserAnswers(answersRef.current);
 
     if (isCorrect) {
       if (soundEnabled) playQuizSound('correct');
@@ -261,14 +228,13 @@ const Quiz = () => {
   };
 
   const handleFinishQuiz = async () => {
-    let correct = 0;
-    activeQuestions.forEach((q) => {
-      if (userAnswers[q.id] === q.correct_answer) {
-        correct++;
-      }
-    });
-
-    const finalPercent = Math.round((correct / activeQuestions.length) * 100);
+    if(finishedRef.current) return;
+    if(!activeQuestions.length || quizModuleRef.current!==moduleId || activeQuestions.some(q=>!answersRef.current[q.id])) { toast({title:'Answer every question before completing the quiz.',variant:'destructive'});return; }
+    let result;
+    try { result=gradeModuleQuiz(activeQuestions,answersRef.current,quizModuleRef.current); }
+    catch(error) { toast({title:error instanceof Error?error.message:'Quiz could not be graded.',variant:'destructive'});return; }
+    finishedRef.current=true;
+    const correct=result.correct, finalPercent=result.percentage;
     setCorrectCount(correct);
     setScore(finalPercent);
     setIsQuizCompleted(true);
@@ -277,7 +243,8 @@ const Quiz = () => {
     triggerConfetti();
 
     // Save personal attempt in local quiz history
-    savePersonalQuizAttempt({
+    const localAttempt=savePersonalQuizAttempt({
+      module_id:quizModuleRef.current,module_title:selectedModule?.title,question_ids:activeQuestions.map(q=>q.id),
       score: finalPercent,
       total_questions: activeQuestions.length,
       correct_answers: correct,
@@ -285,21 +252,24 @@ const Quiz = () => {
       user_id: currentUser?.id,
     });
 
+    setProgressMessage(localAttempt.savedLocally?'Result saved on this device.':'Result could not be saved on this device.');
+
     // Record score for personal progress in Supabase if logged in
     const isGuest = !currentUser || !!currentUser.is_guest || (currentUser.id && currentUser.id.startsWith("guest-"));
     if (!isGuest && currentUser?.id) {
       const validUserName = playerName.trim() || currentUser.name || "Learner";
       try {
         const { error } = await supabase.from('quiz_scores').insert({
+          module_id:quizModuleRef.current,module_title:selectedModule?.title,question_ids:activeQuestions.map(q=>q.id),
           user_id: currentUser.id,
           user_name: validUserName,
           score: finalPercent,
           total_questions: activeQuestions.length,
           correct_answers: correct,
         });
-        if (error) console.warn("Score saved on this device only", error);
+        if (error) { setProgressMessage('Cloud progress sync failed. Your result is still displayed here.'); console.warn('Cloud progress sync failed',error); } else setProgressMessage('Result saved to your account.');
       } catch (e) {
-        console.warn("Could not save score to remote quiz_scores:", e);
+        setProgressMessage('Cloud progress sync failed. Your result is still displayed here.'); console.warn('Could not save score to remote quiz_scores:', e);
       }
     }
   };
@@ -692,7 +662,7 @@ const Quiz = () => {
                       <Trophy className="h-16 w-16 text-amber-500 animate-bounce" />
                     </div>
                     
-                    <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">{tx("Quiz Completed!")}</h2>
+                    <h2 className="text-3xl md:text-4xl font-extrabold font-heading text-kaani-dark">{tx('Quiz Completed!')}</h2>{progressMessage && <p role="status" className="text-sm text-slate-600 mt-3">{tx(progressMessage)}</p>}
 
                     <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-bold ${performanceGrade.color}`}>
                       <Award className="h-4 w-4" />

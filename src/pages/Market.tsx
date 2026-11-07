@@ -1053,13 +1053,18 @@ const Market = () => {
                       <label htmlFor="market-field-5" className="text-xs font-bold text-slate-700 block mb-1">{tx("Quantity Needed (")}{tx(contactProduct.stockUnit)}{tx(")")}</label>
                       <input id="market-field-5"
                         type="number"
+                        required
                         min="0.001"
                         step="0.001"
                         max={contactProduct.availableStock}
+                        aria-describedby="market-order-stock"
+                        aria-invalid={Number(orderQty)>contactProduct.availableStock}
                         value={orderQty}
                         onChange={(e) => setOrderQty(e.target.value)}
                         className="w-full text-xs p-2 rounded-xl border border-emerald-200 bg-[#f8faf9] focus:outline-none focus:ring-2 focus:ring-emerald-600"
                       />
+                      <p id="market-order-stock" className="mt-2 text-xs font-semibold text-emerald-800">{tx('Available Stock')}: {contactProduct.availableStock} {tx(contactProduct.stockUnit)}</p>
+                      {Number(orderQty)>contactProduct.availableStock && <p role="alert" className="mt-1 text-xs text-rose-700">{tx('Requested quantity exceeds available stock. Reduce the quantity or ask the seller to restock.')}</p>}
                     </div>
 
                     <div>
@@ -1096,7 +1101,8 @@ const Market = () => {
                       );
                     })()}
 
-                    <Button type="button" disabled={orderBusy || !ownerId || contactProduct.ownerId === ownerId} className="w-full" onClick={async () => {
+                    <Button type="button" disabled={orderBusy || !ownerId || contactProduct.ownerId === ownerId} className="w-full" onClick={async (event) => {
+                      if (event.currentTarget.form && !event.currentTarget.form.reportValidity()) return;
                       if (orderLock.current) return;
                       orderLock.current = true; setOrderBusy(true);
                       const signature = JSON.stringify([contactProduct.id, orderQty, buyerName, buyerPhone, contactProduct.price]);
@@ -1106,7 +1112,7 @@ const Market = () => {
                         orderAttempt.current = null;
                         toast({ title: 'Order placed. Track it in My Dashboard.' });
                         setContactProduct(null); void reloadProducts();
-                      } catch (error) { toast({ title: error instanceof Error ? error.message : 'Order could not be placed.', variant: 'destructive' }); }
+                      } catch (error) { toast({ title: error instanceof Error ? error.message : 'Order could not be placed.', variant: 'destructive' }); await reloadProducts(); }
                       finally { orderLock.current = false; setOrderBusy(false); }
                     }}>{tx(orderBusy ? 'Saving...' : 'Place Order')}</Button>
                     {!ownerId && <Link to="/auth" className="block underline">{tx('Sign in to place an order.')}</Link>}

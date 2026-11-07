@@ -1,4 +1,5 @@
 export interface QuizQuestion {
+  module_id?: string;
   id: string;
   category: string;
   difficulty: "Easy" | "Medium" | "Hard";
@@ -31,6 +32,9 @@ export interface LearningModule {
 }
 
 export interface QuizHistoryRecord {
+  module_id?: string;
+  module_title?: string;
+  question_ids?: string[];
   id: string;
   score: number;
   total_questions: number;
@@ -323,7 +327,7 @@ export function getPersonalQuizHistory(): QuizHistoryRecord[] {
   }
 }
 
-export function savePersonalQuizAttempt(attempt: Omit<QuizHistoryRecord, "id">): QuizHistoryRecord {
+export function savePersonalQuizAttempt(attempt: Omit<QuizHistoryRecord, "id">): QuizHistoryRecord & { savedLocally: boolean } {
   const current = getPersonalQuizHistory();
   const record: QuizHistoryRecord = {
     ...attempt,
@@ -335,7 +339,8 @@ export function savePersonalQuizAttempt(attempt: Omit<QuizHistoryRecord, "id">):
     localStorage.setItem(LOCAL_STORAGE_KEYS.QUIZ_HISTORY, JSON.stringify(current.slice(0, 50)));
   } catch (err) {
     console.warn("Failed saving quiz attempt to localStorage", err);
+    return {...record,savedLocally:false};
   }
 
-  return record;
+  return {...record,savedLocally:true};
 }

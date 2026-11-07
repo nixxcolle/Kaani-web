@@ -1,5 +1,29 @@
 # Product review and 30-day billing update
 
+## Real-time order, inventory and seller notifications
+
+Run the latest complete `marketplace-update.sql` to enable the new payment and unread-order fields/RPCs. The standalone `order-sync.sql` applies only this latest increment after all previous updates. Both are safe to rerun. Existing orders retain payment status Not Recorded; new orders begin Unpaid. Old orders are marked seen during the one-time migration, while new orders remain unread until the seller opens Seller Orders.
+
+Placing an order calls a single authenticated database transaction. The server derives the seller, price and product details from the approved listing, locks its inventory row, validates stock and expected price, inserts the order, then reserves stock. Failure rolls everything back; retries with the same order ID cannot decrement inventory twice. Seller cancellation before delivery restores stock once. No stock is deducted a second time when payment or receipt is confirmed.
+
+Supabase Realtime publishes committed order and product changes. Customer and seller dashboards refresh on these events even in background tabs, on local successful actions, and on focus/visibility return. Reconnection refresh and polling cover missed events. Sellers receive an in-app new-order toast and a persistent unread badge on the account avatar/mobile menu. The badge opens Seller Orders and clears only records actually fetched and viewed by their owner. Notifications work while the website is open and connected; email, SMS and operating-system push notifications are not included. Browser/server network outages cannot deliver instant notifications; unread orders remain available on return.
+
+Orders show the actual product, quantity/unit, unit price, total, buyer name/contact, creation time, fulfillment status and payment status. The seller can explicitly Record Payment Received or Mark Unpaid with confirmation. This records an outside cash/direct payment; it does not charge a payment method or automatically verify GCash. Customers cannot change payment status. Paid and fulfillment states are separate, and cancelled orders are not automatically refunded by the website.
+
+If the purchase response is uncertain, check My Orders before changing details or placing another order. The app retains the original attempt ID when retrying the same request. Real purchases are not manufactured for tests; the isolated PostgreSQL test verifies stock, ownership, unread markers, payment updates and rollback using disposable records.
+
+## Customer receipt and seller fulfillment update
+
+Run the latest full `marketplace-update.sql` to add the fulfillment and quiz-progress changes as well. It is safe to rerun and preserves existing completed sales/payments. The standalone `order-fulfillment.sql` and `quiz-progress.sql` apply just these changes when all earlier prerequisites already exist.
+
+My Orders always shows the signed-in customer's purchases, even when that account also sells. Seller Orders separately lists received orders. The workflow is Pending → Confirmed → Handed Over / Delivered → Completed. Sellers confirm orders and then handover/delivery; only the buyer's Order Received confirmation completes a new transaction and records the 5% commission in the product's 30-day billing period.
+
+Order Not Received leaves the order open, records the report timestamp and alerts both parties. It does not automatically cancel, refund, restore stock or create commission. The buyer can confirm receipt after resolution. Sellers cannot override that report or confirm receipt on the buyer's behalf. Repeated confirmation calls do not duplicate sales or commissions. Cancellation remains available to sellers before handover and restores reserved stock once. There is no automatic completion timer or automated dispute/refund system.
+
+My Sales shows completed gross sales, completed/all order counts, commission-adjusted net earnings, per-product revenue, calendar monthly earnings in Asia/Manila, and completed transaction history. Pending, handed-over and cancelled orders are excluded from earned revenue. Monthly earnings summaries are distinct from the per-product 30-day billing statements. Net earnings subtract commission, not product costs or other seller expenses.
+
+Quiz attempts now validate module ownership of each question, unique answer choices and correct-answer mapping after shuffling. Answers and timeouts lock immediately; finishing an attempt saves only once. Results store the module ID, title and question IDs locally and in private `quiz_scores` records. Cloud failures are shown clearly. Database checks enforce score/count consistency and own-user access; these are personal learning records, not a tamper-proof exam/certification service. Existing practice/timed modes and scoring percentages are retained.
+
 Open `marketplace-update.sql`, copy its complete contents into Supabase SQL Editor and Run. It installs missing marketplace/dashboard prerequisites, then applies product approval and 30-day billing. The entire operation is transactional and can be run again. The separate `product-review-billing.sql` is the review/billing migration only and is intended to run once after the prerequisites.
 
 New uploads are Pending and visible only to their owner until approved. Existing listings are kept Approved during migration. Editing product or seller details/photo resubmits a listing for review; stock and availability changes retain its approval. Sellers cannot set approval fields or forge the posting date.
